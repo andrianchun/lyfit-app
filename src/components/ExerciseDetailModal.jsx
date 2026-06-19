@@ -84,7 +84,7 @@ const ExerciseDetailModal = ({
 
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in`} onClick={onClose}>
-      <div className={`w-full max-w-md sm:max-w-4xl mx-auto ${t.bgCard} rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
+      <div className={`w-full max-w-md sm:max-w-4xl mx-auto ${t.bgCard} rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col sm:flex-row h-[85vh] sm:h-[80vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
         
         {/* Kolom Kiri: Header with Video/Image */}
         <div className="w-full sm:w-[45%] flex flex-col relative shrink-0 bg-black aspect-square sm:aspect-auto">
