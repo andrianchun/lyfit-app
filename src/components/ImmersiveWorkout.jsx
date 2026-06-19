@@ -20,7 +20,8 @@ const ImmersiveWorkout = ({
   onOpenDetail,
   workoutStartTime,
   restTimer,
-  setRestTimer
+  setRestTimer,
+  setRestTargetTime
 }) => {
   // 1. Gather all active exercises
   const allExercises = useMemo(() => {
@@ -86,6 +87,21 @@ const ImmersiveWorkout = ({
     onToggleSet(ex.id, activeSetIdx);
     
     // Timer istirahat sudah diurus oleh App.jsx via onToggleSet
+  };
+
+  const handleSkipSet = () => {
+    if (!ex) return;
+    playSoundEffect('click', soundEnabled);
+    if (!isAllDone) {
+      onToggleSet(ex.id, activeSetIdx);
+      // Immediately cancel the rest timer that App.jsx triggers
+      setTimeout(() => {
+        setRestTimer(0);
+        if (setRestTargetTime) setRestTargetTime(null);
+      }, 50);
+    } else {
+      handleNextEx();
+    }
   };
 
   const parseMedia = (exercise) => {
@@ -394,22 +410,20 @@ const ImmersiveWorkout = ({
 
           <div className="flex-1 flex items-center justify-center gap-2">
             {logs.map((s, i) => (
-              <button 
+              <div 
                 key={i} 
-                onClick={() => { playSoundEffect('click', soundEnabled); onToggleSet(ex.id, i); }}
-                className={`h-2 rounded-full transition-all hover:scale-110 active:scale-95 ${
+                className={`h-2 rounded-full transition-all ${
                   s.done ? `w-8 ${t.bgAccent}` : 
                   i === activeSetIdx ? `w-12 ${t.bgAccent}` : `w-4 ${theme === 'dark' ? 'bg-white/20' : 'bg-black/10'}`
                 }`} 
-                title={`Toggle Set ${i + 1}`}
               />
             ))}
           </div>
 
           <button 
-            onClick={handleNextEx}
-            className={`p-3 rounded-2xl ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'} transition`}
-            title="Skip Latihan"
+            onClick={handleSkipSet}
+            className={`p-3 rounded-2xl ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'} transition flex items-center justify-center gap-1`}
+            title="Skip 1 Set"
           >
             <ChevronRight size={24} />
           </button>
