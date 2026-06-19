@@ -145,22 +145,42 @@ const CalendarTab = ({
       const [year, month, day] = dateStr.split('-');
       const [hour, minute] = timeStr.split(':');
       const targetTime = new Date(year, parseInt(month)-1, day, hour, minute);
-      const scheduleDate = new Date(targetTime.getTime() - 30 * 60 * 1000); // 30 menit sebelumnya
+      const prepTime = new Date(targetTime.getTime() - 30 * 60 * 1000); // 30 menit sebelumnya
       
-      if (scheduleDate.getTime() < Date.now()) return null;
+      const notifs = [];
+      const notifIds = [];
 
-      const notifId = Math.floor(Math.random() * 1000000);
-      await LocalNotifications.schedule({
-        notifications: [{
+      if (prepTime.getTime() >= Date.now()) {
+        const id1 = Math.floor(Math.random() * 1000000);
+        notifIds.push(id1);
+        notifs.push({
           title: "Persiapan Latihan! 🏋️",
           body: `Jadwal ${programName} dimulai 30 menit lagi. Yuk bersiap-siap!`,
-          id: notifId,
-          schedule: { at: scheduleDate },
+          id: id1,
+          schedule: { at: prepTime },
           actionTypeId: "",
           extra: null
-        }]
-      });
-      return notifId;
+        });
+      }
+
+      if (targetTime.getTime() >= Date.now()) {
+        const id2 = Math.floor(Math.random() * 1000000);
+        notifIds.push(id2);
+        notifs.push({
+          title: "Waktunya Latihan! 🏋️",
+          body: `Hari ini jadwalmu: ${programName}. Yuk mulai sesimu sekarang!`,
+          id: id2,
+          schedule: { at: targetTime },
+          actionTypeId: "",
+          extra: null
+        });
+      }
+
+      if (notifs.length > 0) {
+        await LocalNotifications.schedule({ notifications: notifs });
+        return notifIds;
+      }
+      return null;
     } catch (err) {
       console.log("Berjalan di Web Browser PWA, alarm native diabaikan.");
       return null;
@@ -170,7 +190,8 @@ const CalendarTab = ({
   const cancelWorkoutNotification = async (notifId) => {
     if (!notifId || typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) return;
     try {
-      await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+      const idsToCancel = Array.isArray(notifId) ? notifId.map(id => ({ id })) : [{ id: notifId }];
+      await LocalNotifications.cancel({ notifications: idsToCancel });
     } catch (err) {}
   };
 
