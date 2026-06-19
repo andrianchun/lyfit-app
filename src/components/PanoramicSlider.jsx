@@ -49,34 +49,23 @@ const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshol
     const cw = el.clientWidth;
     if (cw === 0) return;
 
-    if (el.scrollLeft <= cw * (1 - swipeThreshold)) {
+    // Wait for the browser's native scroll-snap to reach the end of the panel
+    if (el.scrollLeft <= 1) {
       isResetting.current = true;
-      onSwipeRight(); // Swiped right, go to previous
-      requestAnimationFrame(() => {
-          if (scrollRef.current) {
-             scrollRef.current.style.scrollBehavior = 'auto';
-             scrollRef.current.style.overflowX = 'hidden';
-             scrollRef.current.scrollLeft = cw;
-          }
-          setTimeout(() => { 
-             if (scrollRef.current) scrollRef.current.style.overflowX = 'auto';
-             isResetting.current = false; 
-          }, 150);
-      });
-    } else if (el.scrollLeft >= cw * (1 + swipeThreshold)) {
+      onSwipeRight();
+      if (scrollRef.current) {
+         scrollRef.current.style.scrollBehavior = 'auto';
+         scrollRef.current.scrollLeft = cw;
+      }
+      setTimeout(() => { isResetting.current = false; }, 50);
+    } else if (el.scrollLeft >= cw * 2 - 1) {
       isResetting.current = true;
-      onSwipeLeft(); // Swiped left, go to next
-      requestAnimationFrame(() => {
-          if (scrollRef.current) {
-             scrollRef.current.style.scrollBehavior = 'auto';
-             scrollRef.current.style.overflowX = 'hidden';
-             scrollRef.current.scrollLeft = cw;
-          }
-          setTimeout(() => { 
-             if (scrollRef.current) scrollRef.current.style.overflowX = 'auto';
-             isResetting.current = false; 
-          }, 150);
-      });
+      onSwipeLeft();
+      if (scrollRef.current) {
+         scrollRef.current.style.scrollBehavior = 'auto';
+         scrollRef.current.scrollLeft = cw;
+      }
+      setTimeout(() => { isResetting.current = false; }, 50);
     }
   };
 
