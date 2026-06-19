@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "594058185444",
+    "project_id": "lyfit-andrian",
+    "storage_bucket": "lyfit-andrian.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:594058185444:android:ea475112516d8a3e9cbaf1",
+        "android_client_info": {
+          "package_name": "com.andrianchun.lyfit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "594058185444-4etgiuv527s2432phbbq0qqclkl150pm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.andrianchun.lyfit",
+            "certificate_hash": "da7f703dcebd32c0acf5e5bbdced060edd4300f1"
+          }
+        },
+        {
+          "client_id": "594058185444-5o2b0crqm9a3dr5sifohshu0om8f300p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDb8XbiRYkMlSqwaHho0WczqFDLQrMQ_mc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "594058185444-5o2b0crqm9a3dr5sifohshu0om8f300p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

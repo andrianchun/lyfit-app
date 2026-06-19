@@ -1,0 +1,55 @@
+import React from 'react';
+import { User, Settings, Users } from 'lucide-react';
+
+const Header = ({ t, theme, user, showSettings, setShowSettings, soundEnabled, playSoundEffect, activeTab, setActiveTab, setConfirmModal }) => {
+  return (
+    <header 
+      className={`sticky top-0 z-40 ${t?.navBg || 'bg-white'} border-b ${t?.border || 'border-gray-200'} px-4 flex justify-between items-center transition-colors duration-300`}
+      style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
+    >
+      
+      {/* BAGIAN KIRI: LOGO */}
+      <div className="flex items-center">
+        <img 
+          src={theme === 'dark' ? "/logo-dark.png" : "/logo-light.png"} 
+          alt="Logo LyFit" 
+          className="h-10 w-auto object-contain drop-shadow-sm ml-1" 
+        />
+      </div>
+      
+      {/* BAGIAN KANAN: SETTINGS & PROFIL (SOSIAL) */}
+      <div className="flex items-center space-x-3 mr-1">
+        {/* Tombol Settings */}
+        <button
+          onClick={() => { if(playSoundEffect) playSoundEffect('click', soundEnabled); setShowSettings(true); }}
+          className={`flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-95 ${t?.btnBg || 'bg-gray-100'} ${t?.textMuted || 'text-gray-500'} hover:${t?.textAccent || 'text-sky-400'}`}
+          title="Pengaturan Aplikasi"
+        >
+          <Settings size={22} strokeWidth={2} />
+        </button>
+
+        {/* Tombol Profil & Sosial (Roadmap) */}
+        <button 
+          onClick={() => { if(playSoundEffect) playSoundEffect('click', soundEnabled); alert("Dasbor Profil, Komunitas & Leaderboard akan segera hadir di update mendatang!"); }}
+          className="relative rounded-full transition-transform active:scale-95 shadow-sm"
+        >
+          {user?.photoURL ? (
+              <img 
+                src={user.photoURL} 
+                alt="Profil" 
+                referrerPolicy="no-referrer"
+                className={`w-10 h-10 rounded-full object-cover border-2 ${t?.border || 'border-gray-200'}`} 
+              />
+          ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t?.btnBg || 'bg-gray-100'} border-2 ${t?.border || 'border-gray-200'}`}>
+                  <User size={20} className={t?.textMain || 'text-gray-700'} />
+              </div>
+          )}
+        </button>
+      </div>
+
+    </header>
+  );
+};
+
+export default Header;

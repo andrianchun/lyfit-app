@@ -1,0 +1,11 @@
+{
+  "appId": "com.andrianchun.lyfit",
+  "appName": "LyFit",
+  "webDir": "dist",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"]
+    }
+  }
+}

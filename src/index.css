@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* Headings */
+  .h1 { @apply text-2xl font-black tracking-tight leading-tight; }
+  .h2 { @apply text-base font-black leading-snug; }
+  .h3 { @apply text-[10px] font-black uppercase tracking-wider; }
+
+  /* Body & Text */
+  .body-lg { @apply text-sm font-bold leading-relaxed; }
+  .body-md { @apply text-xs font-bold leading-relaxed; }
+  .caption { @apply text-[10px] font-bold leading-tight; }
+}
+body { 
+  background-color: #000; 
+  color: #fff; 
+  margin: 0; 
+  padding: 0; 
+  overscroll-behavior-y: none; 
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+.no-spinners::-webkit-inner-spin-button, 
+.no-spinners::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+.animate-spin-slow { animation: spin 3s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+input:disabled { opacity: 0.5; }
+
+@keyframes flashGlow {
+    0% { background-color: rgba(14, 165, 233, 0.5); }
+    100% { background-color: inherit; }
+}
+.flash-glow { animation: flashGlow 0.5s ease-out; }
+svg:focus, .recharts-wrapper:focus, .recharts-surface:focus { outline: none !important; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+* { outline: none !important; -webkit-tap-highlight-color: transparent !important; }
+.recharts-wrapper, .recharts-surface, .recharts-layer { outline: none !important; }
