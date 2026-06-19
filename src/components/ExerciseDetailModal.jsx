@@ -82,6 +82,34 @@ const ExerciseDetailModal = ({
     }
   };
 
+  // Swipe logic for tabs
+  const [tabTouchStart, setTabTouchStart] = useState(null);
+  const [tabTouchEnd, setTabTouchEnd] = useState(null);
+
+  const onTabTouchStart = (e) => {
+    setTabTouchEnd(null);
+    setTabTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTabTouchMove = (e) => setTabTouchEnd(e.targetTouches[0].clientX);
+
+  const onTabTouchEnd = () => {
+    if (!tabTouchStart || !tabTouchEnd) return;
+    const distance = tabTouchStart - tabTouchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    const tabs = ['info', 'history', 'calc'];
+    const currentIndex = tabs.indexOf(activeTab);
+    
+    if (isLeftSwipe && currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1]);
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1]);
+    }
+  };
+
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in`} onClick={onClose}>
       <div className={`w-full max-w-md sm:max-w-4xl mx-auto ${t.bgCard} rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col sm:flex-row h-[85vh] sm:h-[80vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
@@ -196,7 +224,12 @@ const ExerciseDetailModal = ({
           </div>
         )}
 
-        <div className="p-5 overflow-y-auto hide-scrollbar flex-1 bg-black/5 dark:bg-black/20">
+        <div 
+          className="p-5 overflow-y-auto hide-scrollbar flex-1 bg-black/5 dark:bg-black/20 touch-pan-y"
+          onTouchStart={onTabTouchStart}
+          onTouchMove={onTabTouchMove}
+          onTouchEnd={onTabTouchEnd}
+        >
           {ex.type !== 'warmup' && ex.type !== 'cooldown' ? (
             <>
               {activeTab === 'info' && (
