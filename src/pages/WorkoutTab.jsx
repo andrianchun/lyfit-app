@@ -96,7 +96,9 @@ const WorkoutTab = ({
   
   const handleOpenDetail = (ex) => {
      playSoundEffect('click', soundEnabled);
-     setDetailExercise(ex);
+     // Ambil data lengkap (termasuk instructions & equipment) dari database
+     const fullEx = exerciseLibrary?.find(e => e.id === ex.id) || {};
+     setDetailExercise({ ...fullEx, ...ex });
   };
 
   const handleSelectAlternative = (newEx) => {
