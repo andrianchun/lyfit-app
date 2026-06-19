@@ -513,7 +513,6 @@ const CalendarTab = ({
              </div>
           )}
 
-          {selectedWorkouts.length > 0 && (
             <div className="-mx-3 sm:-mx-6">
             <PanoramicSlider
                onSwipeLeft={() => { 
@@ -626,7 +625,6 @@ const CalendarTab = ({
                }}
             />
             </div>
-          )}
           {!showProgramSelect ? (
             <button 
                onClick={() => { playSoundEffect('click', soundEnabled); setShowProgramSelect(true); }}
