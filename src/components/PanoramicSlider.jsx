@@ -122,19 +122,19 @@ const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshol
       onTouchCancel={handleTouchEnd}
     >
       <div 
-        className="flex w-[300%] -ml-[100%]"
+        className="w-full relative"
         style={{ 
           transform: `translate3d(${offsetX}px, 0, 0)`,
           transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)' 
         }}
       >
-        <div className="w-1/3 shrink-0 flex flex-col justify-start">
+        <div className="w-full absolute top-0 -left-full flex flex-col justify-start">
           {renderPanel('prev')}
         </div>
-        <div className="w-1/3 shrink-0 flex flex-col justify-start">
+        <div className="w-full relative flex flex-col justify-start">
           {renderPanel('curr')}
         </div>
-        <div className="w-1/3 shrink-0 flex flex-col justify-start">
+        <div className="w-full absolute top-0 left-full flex flex-col justify-start">
           {renderPanel('next')}
         </div>
       </div>
