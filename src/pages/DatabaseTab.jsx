@@ -172,12 +172,11 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
           <Check size={18} /> {lang?.save || 'Simpan Latihan'}
         </button>
       </div>
-      </div>
-      <div className="pb-8"></div>
-      
+
       </div> {/* Akhir Kolom Kanan */}
       </div> {/* Akhir Grid */}
-      
+
+      <div className="pb-4 sm:pb-0"></div>
       </div>
     </div>
   );
