@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown, Clock, Flame, Link as LinkIcon, X, Dumbbell, ChevronRight, Copy } from 'lucide-react';
+import { Plus, GripVertical, ArrowUp, ArrowDown, Clock, Flame, Link as LinkIcon, X, Dumbbell, ChevronRight, Copy } from 'lucide-react';
 import { formatTarget } from '../data/constants';
 import { playSoundEffect } from '../utils/audio';
 
@@ -250,14 +250,14 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
                 <button
                   onClick={handleDeleteProgram}
                   disabled={programs.length <= 1}
-                  className={`p-3 rounded-xl border transition-colors ${
+                  className={`p-2 rounded-xl border transition-colors flex-shrink-0 flex items-center justify-center w-10 h-10 ${
                     programs.length <= 1
                       ? 'opacity-30 cursor-not-allowed border-gray-300 text-gray-400'
-                      : 'border-rose-200 dark:border-rose-500/20 text-rose-500 hover:bg-rose-500/10'
+                      : 'bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20'
                   }`}
                   title={lang.delete || 'Hapus Program'}
                 >
-                  <Trash2 size={16} />
+                  <X size={16} />
                 </button>
               </div>
             </div>
@@ -465,9 +465,9 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
                         {/* Delete */}
                         <button
                           onClick={() => handleRemoveExercise(ex.id)}
-                          className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors flex-shrink-0 active:scale-90"
+                          className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors flex-shrink-0 active:scale-90"
                         >
-                          <Trash2 size={16} />
+                          <X size={16} />
                         </button>
                       </div>
 

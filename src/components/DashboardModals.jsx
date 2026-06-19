@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, Trash2, CalendarDays, Loader2, ShieldAlert, HeartPulse } from 'lucide-react';
+import { X, Check, CalendarDays, Loader2, ShieldAlert, HeartPulse } from 'lucide-react';
 import { playSoundEffect } from '../utils/audio';
 import SwipeInput from './SwipeInput';
 
@@ -148,7 +148,7 @@ const DashboardModals = ({
                     </div>
                  </div>
                  <div className="flex space-x-2">
-                     <button onClick={handleDeleteBioData} className={`p-2 rounded-full bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors`}><Trash2 size={16}/></button>
+                     <button onClick={handleDeleteBioData} className={`p-2 rounded-full bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors`}><X size={16}/></button>
                      <button onClick={() => setShowManualModal(false)} className={`p-2 rounded-full ${t.btnBg}`}><X size={16}/></button>
                  </div>
               </div>

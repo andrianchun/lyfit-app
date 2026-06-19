@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Edit2, Trash2 } from 'lucide-react';
+import { Heart, Edit2, X } from 'lucide-react';
 import { formatTarget, getVideoId, exerciseTypeLabels } from '../data/constants';
 import EquipmentIcon from './EquipmentIcon';
 
@@ -71,7 +71,7 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
                 className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 active:scale-90 transition-all opacity-70 group-hover:opacity-100"
                 title="Hapus"
               >
-                <Trash2 size={16} />
+                <X size={16} />
               </button>
             )}
           </>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, CheckCircle, GripVertical } from 'lucide-react';
+import { X, CheckCircle, GripVertical } from 'lucide-react';
 import { playSoundEffect } from '../utils/audio';
 
 const EditModeTab = ({ t, lang, programs, setPrograms, setIsEditingMode, setActiveAddModalTarget, soundEnabled }) => {
@@ -76,7 +76,7 @@ const EditModeTab = ({ t, lang, programs, setPrograms, setIsEditingMode, setActi
                             <GripVertical size={16} className={`${t.textMuted} mr-2 cursor-grab`} />
                             <span className="font-bold body-lg">{idx + 1}. {ex.name}</span>
                          </div>
-                         <button onClick={() => handleRemoveEx(prog.id, ex.id)} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"><Trash2 size={16}/></button>
+                         <button onClick={() => handleRemoveEx(prog.id, ex.id)} className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors"><X size={16}/></button>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2 body-md">

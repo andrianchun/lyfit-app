@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, SkipForward, Video, CheckCircle, Play, Square, Info, ArrowLeftRight, X, Dumbbell } from 'lucide-react';
+import { SkipForward, Video, CheckCircle, Play, Square, Info, ArrowLeftRight, X, Dumbbell } from 'lucide-react';
 import EquipmentIcon from './EquipmentIcon';
 import SwipeInput from './SwipeInput';
 import { formatTarget } from '../data/constants';
@@ -95,8 +95,8 @@ const ExerciseCard = ({
              {/* ACTIONS ROW */}
              <div className="flex space-x-1.5 shrink-0 self-start">
                {isExtra && (
-                   <button onClick={() => onRemoveExtra(ex.id)} className={`${t.textMuted} p-2 bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white rounded-xl transition-colors`}>
-                       <Trash2 size={16} />
+                   <button onClick={() => onRemoveExtra(ex.id)} className={`p-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-colors`}>
+                       <X size={16} />
                    </button>
                )}
                <button onClick={() => { playSoundEffect('click', soundEnabled); onToggleSkip(ex.id); }} className={`${t.textMuted} p-2 ${isSkip ? 'bg-rose-500 text-white' : 'bg-black/5 dark:bg-white/5 hover:text-rose-500 hover:bg-rose-500/10'} rounded-xl transition-colors`}>

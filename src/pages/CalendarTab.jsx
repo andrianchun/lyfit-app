@@ -202,7 +202,7 @@ const CalendarTab = ({
      setEditingReminderId(null);
   };
 
-  const handleAddToNativeCalendar = (programName, dateStr, timeStr) => {
+  const handleAddToNativeCalendar = (workoutId, programName, dateStr, timeStr) => {
     playSoundEffect('click', soundEnabled);
     let startDate = dateStr.replace(/-/g, '');
     let endDate = startDate;
@@ -222,8 +222,22 @@ const CalendarTab = ({
       endDate += "T235900";
     }
 
+    let exList = "";
+    const d = history[dateStr];
+    if (d && d.workouts) {
+       const w = d.workouts.find(wk => wk.id === workoutId);
+       if (w) {
+          const prog = programs.find(p => p.id === w.programId);
+          if (prog && prog.exercises) {
+             exList = "\n\nDaftar Latihan:\n" + prog.exercises.map((ex, i) => `${i+1}. ${ex.name}`).join("\n");
+          } else if (w.programId === 'adhoc' && w.exercises) {
+             exList = "\n\nDaftar Latihan:\n" + w.exercises.map((ex, i) => `${i+1}. ${ex.name}`).join("\n");
+          }
+       }
+    }
+
     const title = encodeURIComponent(`Workout: ${programName}`);
-    const details = encodeURIComponent(`Sesi latihan LyFit: ${programName}`);
+    const details = encodeURIComponent(`Sesi latihan LyFit: ${programName}${exList}`);
     
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${details}`;
     window.open(url, '_blank');
@@ -816,11 +830,19 @@ const CalendarTab = ({
                            const sessionSkipped = (dData._activeSession && dData._activeSession.skippedExercises) ? dData._activeSession.skippedExercises : skippedExercises;
                            const logsToUse = (w.log && Object.keys(w.log).length > 0) ? w.log : sessionLogs;
                            const skippedToUse = w.skipped || sessionSkipped;
-          
-                            return (
-                             <div key={w.id} className={`p-4 rounded-2xl ${isCompleted ? 'border ' + t.borderAccentSoft + ' ' + t.bgAccentSoft : 'border-2 border-dashed ' + t.borderAccentSoft + ' bg-black/5 dark:bg-white/5'} flex flex-col relative transition-all ${isExpanded ? 'ring-2 ' + t.ringAccent : 'hover:scale-[1.02] cursor-pointer'}`} onClick={() => { if(!isExpanded) { playSoundEffect('click', soundEnabled); setExpandedWorkoutId(w.id); setCalendarDate(new Date(targetDateStr)); setCalendarMode('weekly'); } }}>
-                                <button onClick={(e) => { e.stopPropagation(); removeWorkout(w.id); }} className="absolute top-3 right-3 p-1.5 text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors z-10"><Trash2 size={16} /></button>
-                                <div className="flex items-center mb-2 pr-8">
+                                  return (
+                              <div key={w.id} className={`p-4 rounded-2xl ${isCompleted ? 'border ' + t.borderAccentSoft + ' ' + t.bgAccentSoft : 'border-2 border-dashed ' + t.borderAccentSoft + ' bg-black/5 dark:bg-white/5'} flex flex-col relative transition-all ${isExpanded ? 'ring-2 ' + t.ringAccent : 'hover:scale-[1.02] cursor-pointer'}`} onClick={() => { if(!isExpanded) { playSoundEffect('click', soundEnabled); setExpandedWorkoutId(w.id); setCalendarDate(new Date(targetDateStr)); setCalendarMode('weekly'); } }}>
+                                <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+                                  {!isCompleted && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleAddToNativeCalendar(w.id, w.programName, targetDateStr, w.reminderTime); }} className="p-1.5 text-blue-500/50 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors" title="Tambah ke Kalender">
+                                      <CalendarPlus size={16} />
+                                    </button>
+                                  )}
+                                  <button onClick={(e) => { e.stopPropagation(); removeWorkout(w.id); }} className="p-1.5 text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors" title="Hapus Jadwal">
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                                <div className="flex items-center mb-2 pr-16">
                                   {isCompleted ? <CheckCircle size={18} className={`${t.textAccent} mr-2`} /> : <PlayCircle size={18} className={`${t.textMuted} mr-2`} />}
                                   <span className="font-black text-left">{w.programName}</span>
                                 </div>
@@ -847,7 +869,7 @@ const CalendarTab = ({
                                                   className={`bg-transparent border-b ${t.borderAccent} outline-none w-16 text-center`}
                                                 />
                                                 <button onClick={() => saveReminderTime(w.id, w.programName, targetDateStr)} className={`text-xs ${t.textAccent} font-bold px-1`}>OK</button>
-                                                <button onClick={() => setEditingReminderId(null)} className="text-xs opacity-50 px-1">X</button>
+                                                <button onClick={() => setEditingReminderId(null)} className="text-xs opacity-50 px-1">Batal</button>
                                               </div>
                                             ) : (
                                               <button onClick={() => { setTempReminderTime(w.reminderTime); setEditingReminderId(w.id); }} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}>
@@ -858,9 +880,6 @@ const CalendarTab = ({
                                           </>
                                         )}
                                       </div>
-                                      <button onClick={() => handleAddToNativeCalendar(w.programName, targetDateStr, w.reminderTime)} className={`p-1.5 rounded-lg ${t.btnBg} hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex items-center gap-1 caption font-bold`} title="Tambah ke Kalender HP">
-                                        <CalendarPlus size={14} />
-                                      </button>
                                     </div>
                                   )}
                                 </div>

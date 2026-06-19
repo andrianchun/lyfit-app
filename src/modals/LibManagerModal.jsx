@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search, Trash2, Edit2, Plus, Filter, Link as LinkIcon, Dumbbell } from 'lucide-react';
+import { X, Search, Edit2, Plus, Filter, Link as LinkIcon, Dumbbell } from 'lucide-react';
 import { formatTarget, normalizeMuscleKey, muscleOptions, equipmentOptions } from '../data/constants';
 import { playSoundEffect } from '../utils/audio';
 
@@ -108,7 +108,7 @@ const LibManagerModal = ({ showLibManager, setShowLibManager, t, exerciseLibrary
                         </div>
                         <div className="flex space-x-1">
                             <button onClick={() => openForm(ex)} className={`p-2 ${t.btnBg} hover:${t.textAccent} rounded-lg transition-colors`}><Edit2 size={16}/></button>
-                            <button onClick={() => handleDelete(ex.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                            <button onClick={() => handleDelete(ex.id)} className="p-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors"><X size={16}/></button>
                         </div>
                     </div>
                 ))}
