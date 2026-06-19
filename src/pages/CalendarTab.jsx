@@ -424,7 +424,7 @@ const CalendarTab = ({
             <button onClick={() => { playSoundEffect('click', soundEnabled); setSlideDirection('right'); setCalendarDate(new Date(year, month + 1, 1));}} className={`p-2 rounded-lg ${t.btnBg} hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors`}><ChevronRight size={20}/></button>
           </div>
         
-        <div className="grid grid-cols-7 gap-1 mb-2 px-1">
+        <div className="grid grid-cols-7 gap-1 mb-2 px-1 py-1">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (<div key={i} className={`text-center caption uppercase ${t.textMuted}`}>{day}</div>))}
         </div>
         <PanoramicSlider
@@ -453,7 +453,7 @@ const CalendarTab = ({
             const panelCells = getGridCellsForDate(panelDate);
 
             return (
-              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 px-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 px-1 py-1">
                 {panelCells.map((dateObj, idx) => {
                   if (!dateObj) return <div key={`blank-${idx}`} className="p-1 sm:p-2"></div>;
                   const dateKey = getLocalYMD(dateObj);
