@@ -137,26 +137,30 @@ const ExerciseDetailModal = ({
               </div>
             )}
             
-            {/* Media Indicators */}
-            {mediaItems.length > 1 && (
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
-                {mediaItems.map((_, idx) => (
-                  <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${idx === activeMediaIndex ? `w-5 ${t.bgAccent}` : 'w-1.5 bg-white/40'}`} />
-                ))}
-              </div>
-            )}
-            
-            <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm transition-all sm:hidden">
+            <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm transition-all sm:hidden z-20">
               <X size={20} />
             </button>
             
-            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
-              <h2 className="text-white h1 leading-tight drop-shadow-md">{ex.name}</h2>
-              <div className="flex gap-2 mt-1">
-                {ex.target?.map(m => (
-                  <span key={m} className={`px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800/50 text-slate-300 border border-slate-700/50`}>{formatTarget(m, lang?.id)}</span>
-                ))}
+            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 pb-4 px-4 flex flex-col gap-2 z-10">
+              <div>
+                <h2 className="text-white h1 leading-tight drop-shadow-md">{ex.name}</h2>
+                <div className="flex gap-1.5 mt-1.5 overflow-x-auto hide-scrollbar w-full pb-1 -mx-1 px-1">
+                  {ex.target?.map(m => (
+                    <span key={m} className={`shrink-0 whitespace-nowrap px-2.5 py-1 rounded-md text-[10px] font-bold bg-black/40 text-slate-200 border border-white/10 backdrop-blur-md`}>
+                      {formatTarget(m, lang?.id)}
+                    </span>
+                  ))}
+                </div>
               </div>
+
+              {/* Media Indicators */}
+              {mediaItems.length > 1 && (
+                <div className="flex justify-center gap-1.5 mt-1">
+                  {mediaItems.map((_, idx) => (
+                    <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${idx === activeMediaIndex ? `w-5 ${t.bgAccent}` : 'w-1.5 bg-white/40'}`} />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
