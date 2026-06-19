@@ -26,6 +26,7 @@ const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, s
 
     const onTouchStart = (e) => {
         if (disabled) return; 
+        e.stopPropagation(); // Mencegah global swipe
         
         let sVal = Number(localValue);
         if ((localValue === '' || localValue === null || localValue === undefined) && placeholder) {
@@ -38,6 +39,8 @@ const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, s
 
     const onTouchMove = (e) => {
         if (!dragRef.current.isDragging || disabled) return;
+        e.stopPropagation(); // Mencegah global swipe
+        
         const diffY = dragRef.current.startY - e.touches[0].clientY;
         const steps = Math.round(diffY / 15); 
         let newValue = dragRef.current.startVal + (steps * step);

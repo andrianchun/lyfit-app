@@ -84,6 +84,8 @@ export default function App() {
 
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+  const [showExitToast, setShowExitToast] = useState(false);
+  const backPressedOnce = useRef(false);
 
   // ==========================================
   // 0. CAPACITOR & NOTIFICATION INIT
@@ -362,22 +364,37 @@ export default function App() {
   }, [exerciseLogs, skippedExercises, extraExercises, activeTab, selectedDate]);
 
   // ==========================================
-  // 4. PENAHAN TOMBOL BACK UNTUK MODAL VIDEO
+  // 4. PENAHAN TOMBOL BACK (UNIVERSAL)
   // ==========================================
   useEffect(() => {
-    if (activeVideoModal) {
-      window.history.pushState({ modal: 'video' }, '');
-      const handlePopState = () => setActiveVideoModal(null);
-      window.addEventListener('popstate', handlePopState);
-      
-      return () => {
-        window.removeEventListener('popstate', handlePopState);
-        if (window.history.state?.modal === 'video') {
-          window.history.back();
-        }
-      };
-    }
-  }, [activeVideoModal]);
+    // Selalu push state agar kita punya "jaring" untuk menangkap tombol back
+    window.history.pushState({ lyfit: true }, '');
+
+    const handlePopState = () => {
+      // Prioritas 1: Tutup modal/dialog yang terbuka
+      if (activeVideoModal) { setActiveVideoModal(null); window.history.pushState({ lyfit: true }, ''); return; }
+      if (showSettings) { setShowSettings(false); window.history.pushState({ lyfit: true }, ''); return; }
+      if (showHelp) { setShowHelp(false); window.history.pushState({ lyfit: true }, ''); return; }
+      if (confirmModal.isOpen) { setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null }); window.history.pushState({ lyfit: true }, ''); return; }
+      if (activeAddModalTarget) { setActiveAddModalTarget(null); window.history.pushState({ lyfit: true }, ''); return; }
+
+      // Prioritas 2: Kembali ke Dashboard jika di tab lain
+      if (activeTab !== 'dashboard') { setActiveTab('dashboard'); window.history.pushState({ lyfit: true }, ''); return; }
+
+      // Prioritas 3: Double-back to exit
+      if (backPressedOnce.current) {
+        // Biarkan browser/app menutup secara natural
+        return;
+      }
+      backPressedOnce.current = true;
+      setShowExitToast(true);
+      window.history.pushState({ lyfit: true }, '');
+      setTimeout(() => { backPressedOnce.current = false; setShowExitToast(false); }, 2000);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeVideoModal, showSettings, showHelp, confirmModal.isOpen, activeAddModalTarget, activeTab]);
 
   // ==========================================
   // 5. MESIN AUTOSAVE LOG LATIHAN KE KALENDER
@@ -997,6 +1014,14 @@ export default function App() {
         sessionToRun={sessionToRun} setSessionToRun={setSessionToRun}
         setFocusWorkoutId={setFocusWorkoutId}
       />
+      {/* Toast "Tekan Back Sekali Lagi" */}
+      {showExitToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className={`px-5 py-2.5 rounded-full shadow-lg text-sm font-medium ${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-white'}`}>
+            Tekan sekali lagi untuk keluar
+          </div>
+        </div>
+      )}
       <BottomNav t={t} lang={lang} activeTab={activeTab} setActiveTab={setActiveTab} setIsEditingMode={setIsEditingMode} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} />
     </div>
   );
