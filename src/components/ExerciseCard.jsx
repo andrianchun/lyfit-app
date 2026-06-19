@@ -12,6 +12,7 @@ const ExerciseCard = ({
   sets, onUpdateSet, onToggleSet, onAddSet, onRemoveSet
 }) => {
   const exType = ex.type || 'weight';
+  const isCustom = ex.id > 1000000 && ex.source !== 'exercisedb';
   const doneCount = sets.filter(s => s.done).length;
   const totalSets = sets.length;
   const isAllDone = doneCount === totalSets && totalSets > 0;
@@ -76,8 +77,9 @@ const ExerciseCard = ({
                     {isExtra ? '+' : idx + 1}
                  </span>
                  <div className="min-w-0">
-                     <h3 className={`h2 truncate pr-2 ${isSkip ? 'line-through opacity-50' : t.textMain}`}>
+                     <h3 className={`h2 truncate pr-2 flex items-center gap-1.5 ${isSkip ? 'line-through opacity-50' : t.textMain}`}>
                         {ex.name}
+                        {isCustom && <span className="px-1 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10 text-center uppercase">CUSTOM</span>}
                      </h3>
                      <p className={`caption uppercase tracking-wider opacity-60 truncate mt-1 ${t.textMuted}`}>
                         {formatTarget(ex.target, lang?.id)}   {ex.equipment || 'Lainnya'}

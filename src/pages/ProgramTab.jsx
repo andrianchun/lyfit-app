@@ -429,7 +429,10 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
                               />
                             )}
                             <div className="min-w-0">
-                              <p className={`body-lg ${t.textMain} truncate`}>{ex.name}</p>
+                              <p className={`body-lg ${t.textMain} truncate flex items-center gap-1.5`}>
+                                {ex.name}
+                                {(ex.id > 1000000 && ex.source !== 'exercisedb') && <span className="px-1 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10 text-center uppercase">CUSTOM</span>}
+                              </p>
                               <p className={`text-[10px] font-medium ${t.textAccent} truncate`}>
                                 {formatTarget(ex.target, lang?.id)}
                               </p>

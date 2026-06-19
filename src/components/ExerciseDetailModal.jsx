@@ -84,82 +84,91 @@ const ExerciseDetailModal = ({
 
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in`} onClick={onClose}>
-      <div className={`w-full max-w-md mx-auto ${t.bgCard} rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
+      <div className={`w-full max-w-md md:max-w-4xl mx-auto ${t.bgCard} rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
         
-        {/* Header with Video/Image */}
-        <div 
-          className="relative bg-black w-full aspect-[4/5] flex-shrink-0 flex items-center justify-center overflow-hidden group touch-pan-y"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
-          {(() => {
-            if (!activeMedia) return <Dumbbell size={64} className="text-white/20" />;
-            
-            if (activeMedia.type === 'youtube') {
-              const match = activeMedia.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-              const videoId = match ? match[1] : null;
-              if (videoId) {
-                return (
-                  <iframe 
-                    src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3`}
-                    title="YouTube video player" 
-                    frameBorder="0" 
-                    onLoad={handleIframeLoad}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    className="exercise-video-iframe w-[140%] h-[140%] max-w-none pointer-events-none scale-[1.15]"
-                  ></iframe>
-                );
+        {/* Kolom Kiri: Header with Video/Image */}
+        <div className="w-full md:w-[45%] flex flex-col relative shrink-0 bg-black aspect-square md:aspect-auto">
+          <div 
+            className="relative w-full h-full flex items-center justify-center overflow-hidden group touch-pan-y"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            {(() => {
+              if (!activeMedia) return <Dumbbell size={64} className="text-white/20" />;
+              
+              if (activeMedia.type === 'youtube') {
+                const match = activeMedia.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+                const videoId = match ? match[1] : null;
+                if (videoId) {
+                  return (
+                    <iframe 
+                      src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3`}
+                      title="YouTube video player" 
+                      frameBorder="0" 
+                      onLoad={handleIframeLoad}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      className="exercise-video-iframe w-[140%] h-[140%] max-w-none pointer-events-none scale-[1.15]"
+                    ></iframe>
+                  );
+                }
               }
-            }
-            if (activeMedia.type === 'video') {
-              return <video src={activeMedia.url} autoPlay loop muted playsInline className="w-full h-full object-contain opacity-80 pointer-events-none" />;
-            }
-            return <img src={activeMedia.url} alt={ex.name} className="w-full h-full object-contain opacity-80 pointer-events-none" />;
-          })()}
+              if (activeMedia.type === 'video') {
+                return <video src={activeMedia.url} autoPlay loop muted playsInline className="w-full h-full object-contain opacity-80 pointer-events-none" />;
+              }
+              return <img src={activeMedia.url} alt={ex.name} className="w-full h-full object-contain opacity-80 pointer-events-none" />;
+            })()}
 
-          {/* Carousel Controls */}
-          {mediaItems.length > 1 && (
-            <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
-                onClick={(e) => { e.stopPropagation(); setActiveMediaIndex(prev => prev > 0 ? prev - 1 : mediaItems.length - 1); }}
-                className="p-2 rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); setActiveMediaIndex(prev => prev < mediaItems.length - 1 ? prev + 1 : 0); }}
-                className="p-2 rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          )}
-          
-          {/* Media Indicators */}
-          {mediaItems.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
-              {mediaItems.map((_, idx) => (
-                <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${idx === activeMediaIndex ? `w-5 ${t.bgAccent}` : 'w-1.5 bg-white/40'}`} />
-              ))}
-            </div>
-          )}
-          
-          <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm transition-all">
-            <X size={20} />
-          </button>
-          
-          <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
-            <h2 className="text-white h1 leading-tight drop-shadow-md">{ex.name}</h2>
-            <div className="flex gap-2 mt-1">
-              {ex.target?.map(m => (
-                <span key={m} className={`px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800/50 text-slate-300 border border-slate-700/50`}>{formatTarget(m, lang?.id)}</span>
-              ))}
+            {/* Carousel Controls */}
+            {mediaItems.length > 1 && (
+              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveMediaIndex(prev => prev > 0 ? prev - 1 : mediaItems.length - 1); }}
+                  className="p-2 rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveMediaIndex(prev => prev < mediaItems.length - 1 ? prev + 1 : 0); }}
+                  className="p-2 rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
+            
+            {/* Media Indicators */}
+            {mediaItems.length > 1 && (
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+                {mediaItems.map((_, idx) => (
+                  <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${idx === activeMediaIndex ? `w-5 ${t.bgAccent}` : 'w-1.5 bg-white/40'}`} />
+                ))}
+              </div>
+            )}
+            
+            <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm transition-all md:hidden">
+              <X size={20} />
+            </button>
+            
+            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
+              <h2 className="text-white h1 leading-tight drop-shadow-md">{ex.name}</h2>
+              <div className="flex gap-2 mt-1">
+                {ex.target?.map(m => (
+                  <span key={m} className={`px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800/50 text-slate-300 border border-slate-700/50`}>{formatTarget(m, lang?.id)}</span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action Tabs - Disembunyikan untuk video Pemanasan/Pendinginan */}
+        {/* Kolom Kanan: Action Tabs & Tab Content */}
+        <div className="w-full md:w-[55%] flex flex-col bg-black/5 dark:bg-black/20 overflow-hidden h-full relative">
+          {/* Desktop Close Button */}
+          <button onClick={onClose} className="hidden md:flex absolute top-3 right-3 bg-black/5 hover:bg-rose-500 hover:text-white dark:bg-white/5 dark:hover:bg-rose-500 text-slate-500 dark:text-slate-300 p-2 rounded-full transition-all z-20">
+            <X size={20} />
+          </button>
+
+          {/* Action Tabs - Disembunyikan untuk video Pemanasan/Pendinginan */}
         {ex.type !== 'warmup' && ex.type !== 'cooldown' && (
           <div className={`flex border-b ${t.border} flex-shrink-0`}>
             <button 
