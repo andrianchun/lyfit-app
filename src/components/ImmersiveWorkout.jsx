@@ -168,8 +168,6 @@ const ImmersiveWorkout = ({
     }
   };
 
-  const [ytLoaded, setYtLoaded] = React.useState(false);
-
   // Listen to YouTube player state to hide initial loading UI and handle seamless looping
   React.useEffect(() => {
     const handleMessage = (e) => {
