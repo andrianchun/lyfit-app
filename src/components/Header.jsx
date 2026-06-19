@@ -1,7 +1,7 @@
 import React from 'react';
-import { User, Settings, Users } from 'lucide-react';
+import { User, Settings, Users, WifiOff } from 'lucide-react';
 
-const Header = ({ t, theme, user, showSettings, setShowSettings, soundEnabled, playSoundEffect, activeTab, setActiveTab, setConfirmModal }) => {
+const Header = ({ t, theme, user, showSettings, setShowSettings, soundEnabled, playSoundEffect, activeTab, setActiveTab, setConfirmModal, isOffline }) => {
   return (
     <header 
       className={`sticky top-0 z-40 ${t?.navBg || 'bg-white'} border-b ${t?.border || 'border-gray-200'} px-4 flex justify-between items-center transition-colors duration-300`}
@@ -19,6 +19,20 @@ const Header = ({ t, theme, user, showSettings, setShowSettings, soundEnabled, p
       
       {/* BAGIAN KANAN: SETTINGS & PROFIL (SOSIAL) */}
       <div className="flex items-center space-x-3 mr-1">
+        
+        {/* Indikator Offline */}
+        {isOffline && (
+          <button
+            onClick={() => {
+              if(playSoundEffect) playSoundEffect('click', soundEnabled);
+              alert("Mode Luring Aktif: Kamu masih dapat mengedit data. Data akan otomatis disinkronisasi begitu internet kembali terhubung.");
+            }}
+            className={`flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-95 bg-red-100 text-red-500 hover:bg-red-200 animate-pulse`}
+            title="Anda sedang Offline"
+          >
+            <WifiOff size={20} strokeWidth={2} />
+          </button>
+        )}
         {/* Tombol Settings */}
         <button
           onClick={() => { if(playSoundEffect) playSoundEffect('click', soundEnabled); setShowSettings(true); }}

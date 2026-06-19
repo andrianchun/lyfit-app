@@ -41,6 +41,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // --- STATE UTAMA ---
   const [theme, setTheme] = useState('dark');
@@ -102,6 +103,18 @@ export default function App() {
       });
     }
   }, [theme]);
+
+  // --- EFEK DETEKSI KONEKSI ---
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // ==========================================
   // REST TIMER NOTIFICATION LOGIC
@@ -902,7 +915,7 @@ export default function App() {
          user={user} handleLogout={handleLogout}
       />
 
-      <Header setConfirmModal={setConfirmModal} t={t} theme={theme} user={user} showSettings={showSettings} setShowSettings={setShowSettings} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Header setConfirmModal={setConfirmModal} t={t} theme={theme} user={user} showSettings={showSettings} setShowSettings={setShowSettings} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} activeTab={activeTab} setActiveTab={setActiveTab} isOffline={isOffline} />
       
       <main className={`${(activeTab === 'calendar' || activeTab === 'database') ? 'px-4 pb-4 pt-0 h-[calc(100vh-140px)] flex flex-col' : 'p-4'} max-w-2xl mx-auto min-h-[70vh]`}>
          {activeTab === 'dashboard' && (
