@@ -423,7 +423,8 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
         id: Date.now(), 
         source: 'custom',
         isFavorite: false,
-        name: `${ex.name}`
+        name: `${ex.name}`,
+        target: normalizedTarget
       });
       setViewMode('custom');
     }
