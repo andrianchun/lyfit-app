@@ -51,6 +51,9 @@ export default function App() {
   const [defaultRestTime, setDefaultRestTime] = useState(120);
   const [warmupVideos, setWarmupVideos] = useState(defaultWarmupVideos);
   const [cooldownVideos, setCooldownVideos] = useState(defaultCooldownVideos);
+  const [weekStartDay, setWeekStartDay] = useState(0); // 0: Sunday, 1: Monday
+  const [defaultReminderTime, setDefaultReminderTime] = useState("15:00");
+  const [reminderEnabled, setReminderEnabled] = useState(true);
 
   const [exerciseLibrary, setExerciseLibrary] = useState(defaultMasterExercises);
   const [programs, setPrograms] = useState(defaultPrograms);
@@ -333,6 +336,9 @@ export default function App() {
               setDefaultRestTime(parsedSettings.defaultRestTime || 120);
               setWarmupVideos(parsedSettings.warmupVideos || defaultWarmupVideos);
               setCooldownVideos(parsedSettings.cooldownVideos || defaultCooldownVideos);
+              setWeekStartDay(parsedSettings.weekStartDay || 0);
+              setDefaultReminderTime(parsedSettings.defaultReminderTime || "15:00");
+              setReminderEnabled(parsedSettings.reminderEnabled ?? true);
             }
           } catch (err) {
             console.error("Parse Error saat load data utama (MENCEGAH AUTO-SAVE UNTUK MENGHINDARI DATA HILANG):", err);
@@ -389,7 +395,7 @@ export default function App() {
         setDoc(mainDocRef, {
           programs,
           exerciseLibrary,
-          settings: { theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos },
+          settings: { theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled },
           updatedAt: new Date().toISOString()
         }, { merge: true }).catch(err => console.error("Auto-save Cloud gagal:", err));
 
@@ -1021,6 +1027,9 @@ export default function App() {
          theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} 
          soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled}
          defaultRestTime={defaultRestTime} setDefaultRestTime={setDefaultRestTime}
+         weekStartDay={weekStartDay} setWeekStartDay={setWeekStartDay}
+         defaultReminderTime={defaultReminderTime} setDefaultReminderTime={setDefaultReminderTime}
+         reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled}
          undoStack={undoStack} redoStack={redoStack} handleUndo={handleUndo} handleRedo={handleRedo}
          setShowHelp={setShowHelp}
          exportData={exportData} handleImportFile={handleImportFile}
@@ -1072,6 +1081,7 @@ export default function App() {
                soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} navigateToWorkoutDate={navigateToWorkoutDate} 
                exerciseLogs={exerciseLogs} skippedExercises={skippedExercises} handleEditPastWorkout={handleEditPastWorkout}
                selectedDate={selectedDate} setSelectedDate={setSelectedDate} setActiveTab={setActiveTab}
+               weekStartDay={weekStartDay} defaultReminderTime={defaultReminderTime} reminderEnabled={reminderEnabled}
              />
          )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, CheckCircle, CalendarDays, Edit2, PlayCircle, Trash2, X, Copy, Repeat, Plus, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, CheckCircle, CalendarDays, Edit2, PlayCircle, Trash2, X, Copy, Repeat, Plus, Clock, Bell, CalendarPlus } from 'lucide-react';
 import { getLocalYMD } from '../data/constants';
 import PanoramicSlider from '../components/PanoramicSlider';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -8,7 +8,8 @@ const CalendarTab = ({
   t, lang, theme, history, setHistory, programs, 
   selectedDate, setSelectedDate,
   setActiveTab, soundEnabled, playSoundEffect, navigateToWorkoutDate,
-  exerciseLogs, skippedExercises, handleEditPastWorkout
+  exerciseLogs, skippedExercises, handleEditPastWorkout,
+  weekStartDay = 0, defaultReminderTime = "15:00", reminderEnabled = true
 }) => {
   const [calendarDate, setCalendarDate] = useState(new Date());
   
@@ -23,6 +24,8 @@ const CalendarTab = ({
   const [repeatCount, setRepeatCount] = useState(4);
   const [draggedDate, setDraggedDate] = useState(null);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState(null);
+  const [editingReminderId, setEditingReminderId] = useState(null);
+  const [tempReminderTime, setTempReminderTime] = useState("");
   const [slideDirection, setSlideDirection] = useState('right');
 
   // Swipe states for Header
@@ -113,12 +116,12 @@ const CalendarTab = ({
   useEffect(() => {
     if (calendarMode === 'weekly' && selectedDate) {
       const sel = new Date(selectedDate);
-      const selDay = sel.getDay();
+      const selDay = (sel.getDay() - weekStartDay + 7) % 7;
       const selWeekStart = new Date(sel);
       selWeekStart.setDate(sel.getDate() - selDay);
       
       const cal = new Date(calendarDate);
-      const calDay = cal.getDay();
+      const calDay = (cal.getDay() - weekStartDay + 7) % 7;
       const calWeekStart = new Date(cal);
       calWeekStart.setDate(cal.getDate() - calDay);
       
@@ -133,26 +136,97 @@ const CalendarTab = ({
     return history[dateStr]?.workouts || [];
   };
 
-  const scheduleWorkoutAlarm = async (dateStr, programName) => {
+  const scheduleWorkoutNotification = async (workoutId, programName, dateStr, timeStr) => {
+    if (!reminderEnabled || !timeStr || typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) return null;
     try {
       const perm = await LocalNotifications.requestPermissions();
-      if (perm.display === 'granted') {
-        const alarmDate = new Date(dateStr);
-        alarmDate.setHours(7, 0, 0, 0); 
-        if (alarmDate.getTime() > Date.now()) {
-          await LocalNotifications.schedule({
-            notifications: [{
-              title: "Waktunya Latihan! 🏋️",
-              body: `Hari ini jadwalmu: ${programName}. Yuk mulai sesimu sekarang!`,
-              id: Math.floor(alarmDate.getTime() / 100000), 
-              schedule: { at: alarmDate }
-            }]
-          });
-        }
-      }
-    } catch (error) {
+      if (perm.display !== 'granted') return null;
+
+      const [year, month, day] = dateStr.split('-');
+      const [hour, minute] = timeStr.split(':');
+      const scheduleDate = new Date(year, parseInt(month)-1, day, hour, minute);
+      
+      if (scheduleDate.getTime() < Date.now()) return null;
+
+      const notifId = Math.floor(Math.random() * 1000000);
+      await LocalNotifications.schedule({
+        notifications: [{
+          title: "Waktunya Latihan! 🏋️",
+          body: `Hari ini jadwalmu: ${programName}. Yuk mulai sesimu sekarang!`,
+          id: notifId,
+          schedule: { at: scheduleDate },
+          actionTypeId: "",
+          extra: null
+        }]
+      });
+      return notifId;
+    } catch (err) {
       console.log("Berjalan di Web Browser PWA, alarm native diabaikan.");
+      return null;
     }
+  };
+
+  const cancelWorkoutNotification = async (notifId) => {
+    if (!notifId || typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) return;
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    } catch (err) {}
+  };
+
+  const saveReminderTime = async (workoutId, programName, dateStr) => {
+     playSoundEffect('click', soundEnabled);
+     let notifId = null;
+     if (reminderEnabled && tempReminderTime) {
+       const d = history[dateStr];
+       if (d && d.workouts) {
+         const existing = d.workouts.find(w => w.id === workoutId);
+         if (existing && existing.reminderNotifId) cancelWorkoutNotification(existing.reminderNotifId);
+       }
+       notifId = await scheduleWorkoutNotification(workoutId, programName, dateStr, tempReminderTime);
+     }
+     
+     setHistory(prev => {
+        const h = { ...prev };
+        const d = h[dateStr];
+        if (d && d.workouts) {
+          const updatedWorkouts = d.workouts.map(w => {
+            if (w.id === workoutId) {
+              return { ...w, reminderTime: tempReminderTime, reminderNotifId: notifId };
+            }
+            return w;
+          });
+          h[dateStr] = { ...d, workouts: updatedWorkouts };
+        }
+        return h;
+     });
+     setEditingReminderId(null);
+  };
+
+  const handleAddToNativeCalendar = (programName, dateStr, timeStr) => {
+    playSoundEffect('click', soundEnabled);
+    let startDate = dateStr.replace(/-/g, '');
+    let endDate = startDate;
+    let timeComponent = "";
+    
+    if (timeStr) {
+      const [hour, minute] = timeStr.split(':');
+      timeComponent = `T${hour}${minute}00`;
+      const d = new Date(`2000-01-01T${timeStr}:00`);
+      d.setHours(d.getHours() + 1);
+      const endHour = String(d.getHours()).padStart(2, '0');
+      const endMinute = String(d.getMinutes()).padStart(2, '0');
+      endDate += `T${endHour}${endMinute}00`;
+      startDate += timeComponent;
+    } else {
+      startDate += "T000000";
+      endDate += "T235900";
+    }
+
+    const title = encodeURIComponent(`Workout: ${programName}`);
+    const details = encodeURIComponent(`Sesi latihan LyFit: ${programName}`);
+    
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${details}`;
+    window.open(url, '_blank');
   };
 
   const handleCopyOrMove = (actionType) => {
@@ -172,7 +246,18 @@ const CalendarTab = ({
     }));
     h[targetDateInput] = { ...targetD, workouts: [...(targetD.workouts||[]), ...newWorkouts] };
     
-    if (newWorkouts.length > 0) scheduleWorkoutAlarm(targetDateInput, newWorkouts[0].programName);
+    if (newWorkouts.length > 0) {
+      // Background schedule, won't block UI
+      newWorkouts.forEach(async w => {
+        w.reminderTime = defaultReminderTime;
+        w.reminderNotifId = await scheduleWorkoutNotification(w.id, w.programName, targetDateInput, defaultReminderTime);
+        setHistory(currentH => {
+          const updatedD = currentH[targetDateInput] || { workouts: [] };
+          const updatedWorkouts = (updatedD.workouts || []).map(uw => uw.id === w.id ? {...uw, reminderTime: w.reminderTime, reminderNotifId: w.reminderNotifId} : uw);
+          return {...currentH, [targetDateInput]: {...updatedD, workouts: updatedWorkouts}};
+        });
+      });
+    }
     
     if (actionType === 'move') {
        const sourceD = h[selectedDate] || { workouts: [] };
@@ -205,7 +290,17 @@ const CalendarTab = ({
             log: {}
         }));
         h[targetStr] = { ...targetD, workouts: [...(targetD.workouts||[]), ...newWorkouts] };
-        if (newWorkouts.length > 0) scheduleWorkoutAlarm(targetStr, newWorkouts[0].programName);
+        if (newWorkouts.length > 0) {
+           newWorkouts.forEach(async w => {
+             w.reminderTime = defaultReminderTime;
+             w.reminderNotifId = await scheduleWorkoutNotification(w.id, w.programName, targetStr, defaultReminderTime);
+             setHistory(currentH => {
+               const updatedD = currentH[targetStr] || { workouts: [] };
+               const updatedWorkouts = (updatedD.workouts || []).map(uw => uw.id === w.id ? {...uw, reminderTime: w.reminderTime, reminderNotifId: w.reminderNotifId} : uw);
+               return {...currentH, [targetStr]: {...updatedD, workouts: updatedWorkouts}};
+             });
+           });
+        }
         copied++;
     }
     setHistory(h);
@@ -234,8 +329,11 @@ const CalendarTab = ({
     setDraggedDate(null);
   };
 
-  const addWorkoutToDate = (p) => {
+  const addWorkoutToDate = async (p) => {
     playSoundEffect('click', soundEnabled); 
+    const wId = `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const notifId = await scheduleWorkoutNotification(wId, p.name, selectedDate, defaultReminderTime);
+
     setHistory(prev => {
       const h = { ...prev };
       const d = h[selectedDate] || { workouts: [] };
@@ -252,23 +350,33 @@ const CalendarTab = ({
         workouts: [
           ...existingWorkouts,
           { 
-            id: `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: wId,
             programId: p.id, 
             programName: newName, 
             status: 'planned', 
-            log: {} 
+            log: {},
+            reminderTime: defaultReminderTime,
+            reminderNotifId: notifId
           }
         ]
       };
       return h;
     });
-    scheduleWorkoutAlarm(selectedDate, p.name);
     setShowProgramSelect(false);
   };
 
   const removeWorkout = (workoutId) => {
     if(!window.confirm('Yakin ingin menghapus jadwal ini?')) return;
     playSoundEffect('click', soundEnabled);
+    
+    const dCheck = history[selectedDate];
+    if (dCheck && dCheck.workouts) {
+      const workoutToRemove = dCheck.workouts.find(w => w.id === workoutId);
+      if (workoutToRemove && workoutToRemove.reminderNotifId) {
+        cancelWorkoutNotification(workoutToRemove.reminderNotifId);
+      }
+    }
+
     setHistory(prev => {
       const h = { ...prev };
       const d = h[selectedDate];
@@ -325,11 +433,13 @@ const CalendarTab = ({
     const m = baseDate.getMonth();
     if (calendarMode === 'monthly') {
       const daysInMonth = new Date(y, m + 1, 0).getDate();
-      const firstDayOfMonth = new Date(y, m, 1).getDay();
+      let firstDayOfMonth = new Date(y, m, 1).getDay();
+      firstDayOfMonth = (firstDayOfMonth - weekStartDay + 7) % 7;
       for (let i = 0; i < firstDayOfMonth; i++) cells.push(null);
       for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(y, m, i));
     } else {
-      const currentDayOfWeek = baseDate.getDay();
+      let currentDayOfWeek = baseDate.getDay();
+      currentDayOfWeek = (currentDayOfWeek - weekStartDay + 7) % 7;
       const startOfWeek = new Date(baseDate);
       startOfWeek.setDate(baseDate.getDate() - currentDayOfWeek);
       for (let i = 0; i < 7; i++) {
@@ -495,7 +605,7 @@ const CalendarTab = ({
         ) : (
           <>
             <div className="grid grid-cols-7 gap-1 mb-2 px-1 py-1">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (<div key={i} className={`text-center caption uppercase ${t.textMuted}`}>{day}</div>))}
+              {(weekStartDay === 1 ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']).map((day, i) => (<div key={i} className={`text-center caption uppercase ${t.textMuted}`}>{day}</div>))}
             </div>
             <PanoramicSlider
               onSwipeLeft={() => {
@@ -722,7 +832,36 @@ const CalendarTab = ({
                                       <span>{w.duration || '00:00'} menit</span>
                                     </div>
                                   ) : (
-                                    <div className="caption opacity-60 mt-1">Status: Direncanakan</div>
+                                    <div className="flex items-center justify-between gap-2 mt-1 relative z-10" onClick={(e) => e.stopPropagation()}>
+                                      <div className="caption opacity-70 flex items-center gap-1.5 flex-wrap">
+                                        <span>Direncanakan</span>
+                                        {w.reminderTime && (
+                                          <>
+                                            <span>•</span>
+                                            {editingReminderId === w.id ? (
+                                              <div className="flex items-center gap-1">
+                                                <input 
+                                                  type="time" 
+                                                  value={tempReminderTime} 
+                                                  onChange={e => setTempReminderTime(e.target.value)}
+                                                  className={`bg-transparent border-b ${t.borderAccent} outline-none w-16 text-center`}
+                                                />
+                                                <button onClick={() => saveReminderTime(w.id, w.programName, targetDateStr)} className={`text-xs ${t.textAccent} font-bold px-1`}>OK</button>
+                                                <button onClick={() => setEditingReminderId(null)} className="text-xs opacity-50 px-1">X</button>
+                                              </div>
+                                            ) : (
+                                              <button onClick={() => { setTempReminderTime(w.reminderTime); setEditingReminderId(w.id); }} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}>
+                                                <Bell size={12} className={t.textAccent} />
+                                                <span className="font-bold">{w.reminderTime}</span>
+                                              </button>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                      <button onClick={() => handleAddToNativeCalendar(w.programName, targetDateStr, w.reminderTime)} className={`p-1.5 rounded-lg ${t.btnBg} hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex items-center gap-1 caption font-bold`} title="Tambah ke Kalender HP">
+                                        <CalendarPlus size={14} />
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                                 {isExpanded && (
