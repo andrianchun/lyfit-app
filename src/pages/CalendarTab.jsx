@@ -109,6 +109,26 @@ const CalendarTab = ({
     }
   };
 
+  // Auto-sync: in weekly mode, ensure calendarDate always shows the week containing selectedDate
+  useEffect(() => {
+    if (calendarMode === 'weekly' && selectedDate) {
+      const sel = new Date(selectedDate);
+      const selDay = sel.getDay();
+      const selWeekStart = new Date(sel);
+      selWeekStart.setDate(sel.getDate() - selDay);
+      
+      const cal = new Date(calendarDate);
+      const calDay = cal.getDay();
+      const calWeekStart = new Date(cal);
+      calWeekStart.setDate(cal.getDate() - calDay);
+      
+      // If selectedDate is not in the currently displayed week, snap calendarDate
+      if (getLocalYMD(selWeekStart) !== getLocalYMD(calWeekStart)) {
+        setCalendarDate(new Date(sel));
+      }
+    }
+  }, [selectedDate, calendarMode]);
+
   const getDayWorkouts = (dateStr) => {
     return history[dateStr]?.workouts || [];
   };
