@@ -114,32 +114,31 @@ export default function SettingsModal({
               </div>
             </div>
 
-            {/* Notifikasi Latihan */}
-            <div className="flex justify-between items-center py-2">
-              <div className={`flex items-center space-x-3 ${t.textMain} shrink-0`}>
-                {reminderEnabled ? <Bell size={20} className={t.textAccent}/> : <BellOff size={20} className={t.textMuted}/>}
-                <span className="font-bold">Notifikasi HP</span>
+            {/* Pengingat Latihan */}
+            <div className="flex flex-col space-y-2 py-2">
+              <div className="flex justify-between items-center">
+                <div className={`flex items-center space-x-3 ${t.textMain} shrink-0`}>
+                  {reminderEnabled ? <Bell size={20} className={t.textAccent}/> : <BellOff size={20} className={t.textMuted}/>}
+                  <span className="font-bold">Pengingat</span>
+                </div>
+                <div className={`relative flex w-32 p-1 rounded-full ${t.btnBg} shrink-0`}>
+                  <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-out ${t.bgAccent} shadow-sm`} style={{ transform: reminderEnabled ? 'translateX(100%)' : 'translateX(0)', left: '4px' }}></div>
+                  <button onClick={() => setReminderEnabled(false)} className={`flex flex-1 justify-center items-center py-1.5 rounded-full relative z-10 transition-colors duration-300 ${!reminderEnabled ? 'text-white' : t.textMuted} text-xs font-bold`}>MATI</button>
+                  <button onClick={() => setReminderEnabled(true)} className={`flex flex-1 justify-center items-center py-1.5 rounded-full relative z-10 transition-colors duration-300 ${reminderEnabled ? 'text-white' : t.textMuted} text-xs font-bold`}>NYALA</button>
+                </div>
               </div>
-              <div className={`relative flex w-32 p-1 rounded-full ${t.btnBg} shrink-0`}>
-                <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-out ${t.bgAccent} shadow-sm`} style={{ transform: reminderEnabled ? 'translateX(100%)' : 'translateX(0)', left: '4px' }}></div>
-                <button onClick={() => setReminderEnabled(false)} className={`flex flex-1 justify-center items-center py-1.5 rounded-full relative z-10 transition-colors duration-300 ${!reminderEnabled ? 'text-white' : t.textMuted} text-xs font-bold`}>MATI</button>
-                <button onClick={() => setReminderEnabled(true)} className={`flex flex-1 justify-center items-center py-1.5 rounded-full relative z-10 transition-colors duration-300 ${reminderEnabled ? 'text-white' : t.textMuted} text-xs font-bold`}>NYALA</button>
-              </div>
-            </div>
-
-            {/* Waktu Standar */}
-            <div className="flex justify-between items-center py-2">
-              <div className={`flex items-center space-x-3 ${t.textMain} shrink-0`}>
-                <Clock size={20} className={t.textAccent}/> 
-                <span className="font-bold">Waktu</span>
-              </div>
-              <input
-                type="time"
-                lang="en-GB"
-                value={defaultReminderTime}
-                onChange={(e) => setDefaultReminderTime(e.target.value)}
-                className={`w-32 text-center font-bold px-2 py-1.5 rounded-xl outline-none border ${t.border} focus:ring-2 ${t.ringAccent} ${t.inputBg} ${t.textMain}`}
-              />
+              {reminderEnabled && (
+                <div className={`flex justify-between items-center pl-8 pt-1 animate-in slide-in-from-top-2 duration-300`}>
+                  <span className={`body-sm ${t.textMuted}`}>Waktu</span>
+                  <input
+                    type="time"
+                    lang="en-GB"
+                    value={defaultReminderTime}
+                    onChange={(e) => setDefaultReminderTime(e.target.value)}
+                    className={`w-32 text-center font-bold px-2 py-1.5 rounded-xl outline-none border ${t.border} focus:ring-2 ${t.ringAccent} ${t.inputBg} ${t.textMain}`}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
