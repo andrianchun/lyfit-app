@@ -206,9 +206,11 @@ const CalendarTab = ({
     playSoundEffect('click', soundEnabled);
     
     let startD, endD;
-    if (timeStr) {
+    const effectiveTimeStr = timeStr || defaultReminderTime || "15:00";
+    
+    if (effectiveTimeStr) {
       const [year, month, day] = dateStr.split('-');
-      const [hour, minute] = timeStr.split(':');
+      const [hour, minute] = effectiveTimeStr.split(':');
       startD = new Date(year, parseInt(month)-1, day, hour, minute);
       endD = new Date(startD.getTime() + 60 * 60 * 1000); // +1 jam
     } else {
@@ -232,7 +234,7 @@ const CalendarTab = ({
     }
 
     const title = `Workout: ${programName}`;
-    const details = `Sesi latihan LyFit: ${programName}${exList}\n\n*Catatan: Google Calendar Web menggunakan pengingat default akunmu (misal 10 menit). Atur pengingat ke 30 menit secara manual jika perlu.`;
+    const details = `Sesi latihan LyFit: ${programName}${exList}`;
     
     const pad = n => String(n).padStart(2, '0');
     const startGcal = `${startD.getUTCFullYear()}${pad(startD.getUTCMonth()+1)}${pad(startD.getUTCDate())}T${pad(startD.getUTCHours())}${pad(startD.getUTCMinutes())}00Z`;
