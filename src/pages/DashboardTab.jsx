@@ -400,10 +400,7 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
              <span className={`h2 ${t.textAccent}`}>{bioData.weeklyDuration || '-'} <span className="caption text-zinc-500">Mins</span></span>
          </div>
       </div>
-      </div>
 
-
-      
       {/* --- GRUP PROGRESS --- */}
       <div className="flex flex-col w-full min-w-0">
         {/* SECTION: PROGRESS TAB — Main card */}
