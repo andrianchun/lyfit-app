@@ -279,18 +279,22 @@ const CalendarTab = ({
 
   const todayStr = getLocalYMD(new Date());
   
-  let selectedWorkouts = [...getDayWorkouts(selectedDate)];
-  const dayData = history[selectedDate] || {};
-  if (dayData._activeSession?.extraExercises?.length > 0 && !selectedWorkouts.some(w => w.programId === 'adhoc')) {
-    selectedWorkouts.push({
-      id: 'virtual_adhoc',
-      programId: 'adhoc',
-      programName: 'Sesi Ekstra',
-      status: 'planned',
-      log: dayData._activeSession.exerciseLogs || {},
-      exercises: dayData._activeSession.extraExercises
-    });
-  }
+  const getSelectedWorkoutsForDate = (dateStr) => {
+    let wks = [...getDayWorkouts(dateStr)];
+    const dData = history[dateStr] || {};
+    if (dData._activeSession?.extraExercises?.length > 0 && !wks.some(w => w.programId === 'adhoc')) {
+      wks.push({
+        id: 'virtual_adhoc',
+        programId: 'adhoc',
+        programName: 'Sesi Ekstra',
+        status: 'planned',
+        log: dData._activeSession.exerciseLogs || {},
+        exercises: dData._activeSession.extraExercises
+      });
+    }
+    return wks;
+  };
+  const selectedWorkouts = getSelectedWorkoutsForDate(selectedDate);
   
   let gridCells = [];
   const year = calendarDate.getFullYear();
