@@ -7,6 +7,7 @@ import { playSoundEffect } from '../utils/audio';
 import ExerciseDetailModal from '../components/ExerciseDetailModal';
 import UnifiedExerciseCard from '../components/UnifiedExerciseCard';
 import FilterChips from '../components/FilterChips';
+import SwipeInput from '../components/SwipeInput';
 
 // ─── Blank exercise template ───────────────────────────────────────
 const blankExercise = () => ({
@@ -63,7 +64,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="Contoh: Bench Press"
-          className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} transition-all`}
+          className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} transition-all placeholder:opacity-30 dark:placeholder:opacity-40`}
         />
       </div>
 
@@ -124,14 +125,13 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={`body-md ${t.textMuted} mb-1 block`}>{lang?.defaultWeight || 'Beban Default (kg)'}</label>
-          <input
-            type="number"
-            min="0"
-            step="0.5"
-            value={formData.defaultWeight || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, defaultWeight: e.target.value === '' ? 0 : Number(e.target.value) }))}
+          <SwipeInput
+            value={formData.defaultWeight || 0}
+            onChange={(val) => setFormData(prev => ({ ...prev, defaultWeight: val }))}
+            min={0}
+            step={0.5}
             placeholder="0"
-            className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent}`}
+            className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} placeholder:opacity-30 dark:placeholder:opacity-40`}
           />
         </div>
         <div>
@@ -143,7 +143,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
             value={formData.ytVideo || ''}
             onChange={(e) => setFormData(prev => ({ ...prev, ytVideo: e.target.value }))}
             placeholder="https://youtu.be/..."
-            className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent}`}
+            className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} placeholder:opacity-30 dark:placeholder:opacity-40`}
           />
         </div>
       </div>
@@ -156,7 +156,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
           onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value.split('\n') }))}
           placeholder="Langkah 1...&#10;Langkah 2..."
           rows={3}
-          className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} resize-none`}
+          className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} resize-none placeholder:opacity-30 dark:placeholder:opacity-40`}
         />
       </div>
 
