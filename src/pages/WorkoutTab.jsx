@@ -344,7 +344,7 @@ const WorkoutTab = ({
                     onClick={() => { playSoundEffect('click', soundEnabled); toggleSession('extra'); }}
                     className={`w-full p-4 flex items-center justify-between font-black text-left ${expandedSessions['extra'] ? t.bgAccentSoft + ' ' + t.textAccent : ''} transition-colors`}
                   >
-                    <span className="body-lg uppercase tracking-widest">Sesi Ekstra (Ad-Hoc)</span>
+                    <span className="body-lg uppercase tracking-widest">Sesi Ekstra</span>
                     <div className="flex items-center gap-1 caption opacity-60 font-bold"><span>{extraExercises.length} Latihan</span>{expandedSessions['extra'] ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</div>
                   </button>
                   
