@@ -46,7 +46,7 @@ const CalendarTab = ({
     const isUpSwipe = distanceY > 40 && Math.abs(distanceY) > Math.abs(distanceX);
     const isDownSwipe = distanceY < -40 && Math.abs(distanceY) > Math.abs(distanceX);
 
-    if (isUpSwipe && calendarMode === 'monthly') { setCalendarMode('weekly'); playSoundEffect('click', soundEnabled); }
+    if (isUpSwipe && calendarMode === 'monthly') { setCalendarDate(new Date(selectedDate)); setCalendarMode('weekly'); playSoundEffect('click', soundEnabled); }
     else if (isDownSwipe && calendarMode === 'weekly') { setCalendarMode('monthly'); playSoundEffect('click', soundEnabled); }
     else if (isLeftSwipe) { 
         playSoundEffect('click', soundEnabled); 
@@ -449,7 +449,7 @@ const CalendarTab = ({
           </div>
         </div>
         <button 
-            onClick={() => { playSoundEffect('click', soundEnabled); setCalendarMode(calendarMode === 'monthly' ? 'weekly' : 'monthly'); }}
+            onClick={() => { playSoundEffect('click', soundEnabled); if (calendarMode === 'monthly') setCalendarDate(new Date(selectedDate)); setCalendarMode(calendarMode === 'monthly' ? 'weekly' : 'monthly'); }}
             className="w-full flex items-center justify-center pt-3 pb-1 -mb-2 mt-2 text-zinc-500 hover:text-emerald-500 transition-colors"
         >
             {calendarMode === 'monthly' ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
@@ -465,6 +465,7 @@ const CalendarTab = ({
          onTouchEnd={onDetTouchEnd}
          onScroll={(e) => {
             if (e.currentTarget.scrollTop > 20 && calendarMode === 'monthly') {
+               setCalendarDate(new Date(selectedDate));
                setCalendarMode('weekly');
             }
          }}
@@ -526,7 +527,7 @@ const CalendarTab = ({
                  const skippedToUse = w.skipped || sessionSkipped;
 
                   return (
-                   <div key={w.id} className={`p-4 rounded-2xl ${isCompleted ? 'border ' + t.borderAccentSoft + ' ' + t.bgAccentSoft : 'border-2 border-dashed ' + t.borderAccentSoft + ' bg-black/5 dark:bg-white/5'} flex flex-col relative transition-all ${isExpanded ? 'ring-2 ' + t.ringAccent : 'hover:scale-[1.02] cursor-pointer'}`} onClick={() => { if(!isExpanded) { playSoundEffect('click', soundEnabled); setExpandedWorkoutId(w.id); setCalendarMode('weekly'); } }}>
+                   <div key={w.id} className={`p-4 rounded-2xl ${isCompleted ? 'border ' + t.borderAccentSoft + ' ' + t.bgAccentSoft : 'border-2 border-dashed ' + t.borderAccentSoft + ' bg-black/5 dark:bg-white/5'} flex flex-col relative transition-all ${isExpanded ? 'ring-2 ' + t.ringAccent : 'hover:scale-[1.02] cursor-pointer'}`} onClick={() => { if(!isExpanded) { playSoundEffect('click', soundEnabled); setExpandedWorkoutId(w.id); setCalendarDate(new Date(selectedDate)); setCalendarMode('weekly'); } }}>
                       <button onClick={(e) => { e.stopPropagation(); removeWorkout(w.id); }} className="absolute top-3 right-3 p-1.5 text-rose-500/50 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors z-10"><Trash2 size={16} /></button>
                       <div className="flex items-center mb-2 pr-8">
                         {isCompleted ? <CheckCircle size={18} className={`${t.textAccent} mr-2`} /> : <PlayCircle size={18} className={`${t.textMuted} mr-2`} />}
