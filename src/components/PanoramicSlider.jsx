@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 
-const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshold = 0.25, onUpSwipe, onDownSwipe }) => {
+const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshold = 0.25, onUpSwipe, onDownSwipe, className = '' }) => {
   const containerRef = useRef(null);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -115,7 +115,7 @@ const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshol
   return (
     <div 
       ref={containerRef}
-      className="w-full overflow-hidden relative touch-pan-y"
+      className={`w-full overflow-hidden relative touch-pan-y ${className}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

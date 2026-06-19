@@ -513,8 +513,8 @@ const CalendarTab = ({
              </div>
           )}
 
-            <div className="-mx-3 sm:-mx-6">
-            <PanoramicSlider
+            <div className="-mx-3 sm:-mx-6 flex-1 flex flex-col">
+            <PanoramicSlider className="flex-1"
                onSwipeLeft={() => { 
                    const d = new Date(selectedDate);
                    d.setDate(d.getDate() + 1);
@@ -621,46 +621,50 @@ const CalendarTab = ({
                            );
                          })}
                       </div>
+
+                         <div className="px-3 sm:px-6 pb-6 mt-auto">
+                            {!showProgramSelect ? (
+                              <button 
+                                 onClick={() => { playSoundEffect('click', soundEnabled); setShowProgramSelect(true); }}
+                                 className={`w-full py-4 rounded-xl border-2 border-dashed ${t.borderAccentSoft} ${t.textAccent} font-bold flex items-center justify-center hover:${t.bgAccentSoft} transition-colors`}
+                              >
+                                 <Plus size={18} className="mr-2" /> Tambah Program
+                              </button>
+                            ) : (
+                              <div className={`p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-dashed ${t.border} animate-in fade-in`}>
+                                 <div className="flex justify-between items-center mb-3">
+                                   <span className="body-lg font-bold">Pilih Program Latihan:</span>
+                                   <button onClick={() => setShowProgramSelect(false)} className="p-1 hover:bg-white/10 rounded-lg"><X size={16}/></button>
+                                 </div>
+                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                   {programs.map(p => (
+                                     <button 
+                                       key={p.id} 
+                                       onClick={() => addWorkoutToDate(p)}
+                                       className={`w-full p-3 rounded-xl border ${t.border} text-left body-lg font-bold hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex justify-between items-center`}
+                                     >
+                                       {p.name}
+                                       <Plus size={16} className="opacity-50" />
+                                     </button>
+                                   ))}
+                                 </div>
+                              </div>
+                            )}
+
+                            {panelWorkouts.some(w => !checkIsCompletedStrict(w, targetDateStr)) && targetDateStr === todayStr && (
+                              <button 
+                                onClick={() => { playSoundEffect('click', soundEnabled); navigateToWorkoutDate(targetDateStr); }} 
+                                className={`w-full p-4 mt-6 rounded-xl font-bold text-white transition-colors bg-gradient-to-r ${t.gradientBg} shadow-lg flex justify-center items-center`}
+                              >
+                                <PlayCircle size={18} className="mr-2"/> Mulai Latihan Sekarang
+                              </button>
+                            )}
+                         </div>
+                       </div>
                    );
                }}
             />
             </div>
-          {!showProgramSelect ? (
-            <button 
-               onClick={() => { playSoundEffect('click', soundEnabled); setShowProgramSelect(true); }}
-               className={`w-full py-4 rounded-xl border-2 border-dashed ${t.borderAccentSoft} ${t.textAccent} font-bold flex items-center justify-center hover:${t.bgAccentSoft} transition-colors`}
-            >
-               <Plus size={18} className="mr-2" /> Tambah Program
-            </button>
-          ) : (
-            <div className={`p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-dashed ${t.border} animate-in fade-in`}>
-               <div className="flex justify-between items-center mb-3">
-                 <span className="body-lg font-bold">Pilih Program Latihan:</span>
-                 <button onClick={() => setShowProgramSelect(false)} className="p-1 hover:bg-white/10 rounded-lg"><X size={16}/></button>
-               </div>
-               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                 {programs.map(p => (
-                   <button 
-                     key={p.id} 
-                     onClick={() => addWorkoutToDate(p)}
-                     className={`w-full p-3 rounded-xl border ${t.border} text-left body-lg font-bold hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex justify-between items-center`}
-                   >
-                     {p.name}
-                     <Plus size={16} className="opacity-50" />
-                   </button>
-                 ))}
-               </div>
-            </div>
-          )}
-
-          {hasPlanned && selectedDate === todayStr && (
-            <button 
-              onClick={() => { playSoundEffect('click', soundEnabled); navigateToWorkoutDate(selectedDate); }} 
-              className={`w-full p-4 mt-6 rounded-xl font-bold text-white transition-colors bg-gradient-to-r ${t.gradientBg} shadow-lg flex justify-center items-center`}
-            >
-              <PlayCircle size={18} className="mr-2"/> Mulai Latihan Sekarang
-            </button>
-          )}
       </div>
     </div>
   );
