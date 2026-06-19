@@ -26,6 +26,7 @@ import DatabaseTab from './pages/DatabaseTab';
 import ProgramTab from './pages/ProgramTab';
 
 // --- IMPORT MODALS ---
+import ExerciseDetailModal from './components/ExerciseDetailModal';
 import ConfirmModal from './modals/ConfirmModal';
 import AddExerciseModal from './modals/AddExerciseModal';
 import SettingsModal from './modals/SettingsModal';
