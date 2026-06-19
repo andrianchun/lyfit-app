@@ -35,16 +35,30 @@ const ExerciseDetailModal = ({
   const [activeMediaIndex, setActiveMediaIndex] = React.useState(0);
   const activeMedia = mediaItems[activeMediaIndex];
 
+  // Swipe logic for media carousel
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+
+  useEffect(() => {
+    setIsVideoReady(false);
+  }, [activeMediaIndex]);
+
   // Custom YouTube Looping Logic reliably using e.source
   React.useEffect(() => {
     const handleMessage = (e) => {
       if (e.origin !== "https://www.youtube.com") return;
       try {
         const data = JSON.parse(e.data);
-        if (data.event === "infoDelivery" && data.info && data.info.playerState === 0) {
-          // Video ended, send seekTo 0 and play to the iframe that emitted the event
-          e.source.postMessage(JSON.stringify({event: "command", func: "seekTo", args: [0, true]}), "*");
-          e.source.postMessage(JSON.stringify({event: "command", func: "playVideo", args: []}), "*");
+        if (data.event === "infoDelivery" && data.info) {
+          if (data.info.playerState === 0) {
+            // Video ended, send seekTo 0 and play to the iframe that emitted the event
+            e.source.postMessage(JSON.stringify({event: "command", func: "seekTo", args: [0, true]}), "*");
+            e.source.postMessage(JSON.stringify({event: "command", func: "playVideo", args: []}), "*");
+          } else if (data.info.playerState === 1) {
+            // Video is playing
+            setIsVideoReady(true);
+          }
         }
       } catch (err) {}
     };
@@ -55,10 +69,6 @@ const ExerciseDetailModal = ({
   const handleIframeLoad = (e) => {
     e.target.contentWindow.postMessage(JSON.stringify({event: "listening"}), "*");
   };
-
-  // Swipe logic for media carousel
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
 
   const minSwipeDistance = 40;
 
@@ -142,14 +152,21 @@ const ExerciseDetailModal = ({
                         const videoId = match ? match[1] : null;
                         if (videoId) {
                           return (
-                            <iframe 
-                              src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=${idx === activeMediaIndex ? '1' : '0'}&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3`}
-                              title="YouTube video player" 
-                              frameBorder="0" 
-                              onLoad={handleIframeLoad}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                              className="exercise-video-iframe w-[140%] h-[140%] max-w-none pointer-events-none scale-[1.15]"
-                            ></iframe>
+                            <>
+                              <iframe 
+                                src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=${idx === activeMediaIndex ? '1' : '0'}&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3`}
+                                title="YouTube video player" 
+                                frameBorder="0" 
+                                onLoad={handleIframeLoad}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                className={`exercise-video-iframe w-[140%] h-[140%] max-w-none pointer-events-none scale-[1.15] transition-opacity duration-700 ${isVideoReady || idx !== activeMediaIndex ? 'opacity-100' : 'opacity-0'}`}
+                              ></iframe>
+                              {!isVideoReady && idx === activeMediaIndex && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+                                  <Loader2 className="w-8 h-8 text-white/50 animate-spin" />
+                                </div>
+                              )}
+                            </>
                           );
                         }
                       }
