@@ -292,6 +292,7 @@ const ExerciseDetailModal = ({
             </div>
           )}
         </div>
+        </div>
 
       </div>
     </div>
