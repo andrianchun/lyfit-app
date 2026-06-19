@@ -89,7 +89,7 @@ const WorkoutTab = ({
     if (!hasExercises || activeExs.length === 0) return false;
     return activeExs.every(ex => {
        const logs = getSetLogs(ex);
-       return logs.length > 0 && logs.every(s => s.done);
+       return logs.length > 0 && logs.every(s => s.done && !s.skipped);
     });
   };
 
@@ -139,7 +139,8 @@ const WorkoutTab = ({
         w: ex.defaultWeight || 0,
         r: ex.reps || 10,
         d: ex.duration || 10,
-        done: false
+        done: false,
+        skipped: false
     }));
   };
 
@@ -307,7 +308,6 @@ const WorkoutTab = ({
                               t={t} lang={lang} soundEnabled={soundEnabled}
                               isSkip={!!skippedExercises[ex.id]} 
                               onToggleSkip={() => onToggleSkip(ex.id)} 
-                              onReplaceClick={() => setActiveAddModalTarget({ type: 'replace', id: ex.id, muscle: ex.target?.[0] })}
                               onRemoveExtra={onRemoveExtra} 
                               onOpenVideo={() => handleOpenDetail(ex)}
                               sets={getSetLogs(ex)}
@@ -429,7 +429,7 @@ const WorkoutTab = ({
         if (hasExercises && !allSkipped) {
           isAllSetsDone = activeExercises.every(ex => {
             const logs = getSetLogs(ex);
-            return logs.length > 0 && logs.every(s => s.done);
+            return logs.length > 0 && logs.every(s => s.done && !s.skipped);
           });
         }
 

@@ -328,7 +328,7 @@ const CalendarTab = ({
       
       const isDone = activeExercises.every(ex => {
         const logs = exerciseLogs?.[ex.id] || [];
-        return logs.length > 0 && logs.every(s => s.done);
+        return logs.length > 0 && logs.every(s => s.done && !s.skipped);
       });
 
       if (!isDone && w.status === 'completed') return false;
@@ -353,7 +353,7 @@ const CalendarTab = ({
       
       return activeExercises.every(ex => {
         const logs = sessionLogs?.[`${ex.id}-${w.id}`] || sessionLogs?.[ex.id] || [];
-        return logs.length > 0 && logs.every(s => s.done);
+        return logs.length > 0 && logs.every(s => s.done && !s.skipped);
       });
     }
     return false;
@@ -551,7 +551,7 @@ const CalendarTab = ({
                             {prog?.exercises?.map((ex, idx) => {
                                const exLogKey = `${ex.id}-${w.id}`;
                                const exLogs = logsToUse?.[exLogKey] || logsToUse?.[ex.id];
-                               const doneSets = exLogs ? exLogs.filter(s => s.done) : [];
+                               const doneSets = exLogs ? exLogs.filter(s => s.done && !s.skipped) : [];
                                const isSkipped = skippedToUse?.[exLogKey] || skippedToUse?.[ex.id];
                                const isNotDoneWhenCompleted = isCompleted && doneSets.length === 0;
 

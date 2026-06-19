@@ -72,7 +72,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
               const exTargets = Array.isArray(ex.target) ? ex.target : [ex.target || 'Lainnya'];
               
               Object.values(sets).forEach(s => {
-                  if (s && s.done) {
+                  if (s && s.done && !s.skipped) {
                       if (isMusc) {
                           let volume = 0;
                           if (exType === 'weight') volume = (Number(s.w) * Number(s.r));
