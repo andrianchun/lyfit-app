@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, CheckCircle, CalendarDays, Edit2, PlayCircle, Trash2, X, Copy, Repeat, Plus, Clock } from 'lucide-react';
 import { getLocalYMD } from '../data/constants';
 import PanoramicSlider from '../components/PanoramicSlider';
