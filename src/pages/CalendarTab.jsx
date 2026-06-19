@@ -526,12 +526,22 @@ const CalendarTab = ({
             );
           }}
         />
-        <button 
-            onClick={() => { playSoundEffect('click', soundEnabled); if (calendarMode === 'monthly') setCalendarDate(new Date(selectedDate)); setCalendarMode(calendarMode === 'monthly' ? 'weekly' : 'monthly'); }}
-            className="w-full flex items-center justify-center pt-3 pb-1 -mb-2 mt-2 text-zinc-500 hover:text-emerald-500 transition-colors"
-        >
-            {calendarMode === 'monthly' ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-        </button>
+        <div className="flex items-center justify-center relative pt-3 pb-1 -mb-2 mt-2">
+            {selectedDate !== todayStr && (
+              <button
+                onClick={() => { playSoundEffect('click', soundEnabled); setSelectedDate(todayStr); setCalendarDate(new Date()); }}
+                className={`absolute right-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${t.bgAccentSoft} ${t.textAccent} hover:opacity-80 transition-opacity`}
+              >
+                <CalendarDays size={10} className="inline mr-0.5 -mt-px" />Hari Ini
+              </button>
+            )}
+            <button 
+              onClick={() => { playSoundEffect('click', soundEnabled); if (calendarMode === 'monthly') setCalendarDate(new Date(selectedDate)); setCalendarMode(calendarMode === 'monthly' ? 'weekly' : 'monthly'); }}
+              className="text-zinc-500 hover:text-emerald-500 transition-colors"
+            >
+              {calendarMode === 'monthly' ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+            </button>
+        </div>
       </div>
       </div>
 
