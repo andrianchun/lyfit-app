@@ -32,12 +32,12 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
                 );
              }
           })()}
-          {isCustom && <div className="absolute -top-1.5 -right-1.5 px-1 py-0.5 bg-rose-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10">KUSTOM</div>}
+          {isCustom && <div className="absolute -top-1.5 -right-1.5 px-1 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10 text-center">CUSTOM</div>}
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h4 className="body-lg font-black text-slate-100 truncate flex items-center gap-1.5">
+          <h4 className={`body-lg font-black ${t.textMain} truncate flex items-center gap-1.5`}>
              {ex.name}
           </h4>
           <p className={`body-md ${t.textAccent} truncate`}>{formatTarget(ex.target, lang?.id)}</p>
