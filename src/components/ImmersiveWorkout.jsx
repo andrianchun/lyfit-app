@@ -265,9 +265,12 @@ const ImmersiveWorkout = ({
         />
       </div>
 
+      {/* TABLET SPLIT WRAPPER */}
+      <div className="flex-1 flex flex-col md:flex-row w-full mt-16 overflow-hidden">
+
       {/* MAIN VISUAL (Center) */}
       <div 
-        className="flex-1 relative flex items-center justify-center  mt-16 mb-6 rounded-3xl mx-4 overflow-hidden shadow-2xl border border-white/10 group"
+        className="flex-1 relative flex items-center justify-center mb-6 md:mb-4 rounded-3xl mx-4 md:mr-0 overflow-hidden shadow-2xl border border-white/10 group touch-pan-y"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -348,7 +351,7 @@ const ImmersiveWorkout = ({
       </div>
 
       {/* CONTROLS (Bottom) */}
-      <div className="px-4 pb-8 space-y-6">
+      <div className="w-full md:w-[45%] lg:w-[40%] px-4 pb-8 md:pb-4 space-y-6 md:space-y-8 flex flex-col justify-center overflow-y-auto shrink-0 relative z-10">
         
         {/* Sets Indicator */}
         <div className="flex items-center justify-center gap-2">
@@ -443,6 +446,7 @@ const ImmersiveWorkout = ({
         </div>
 
       </div>
+      {/* END TABLET SPLIT WRAPPER */}
 
       {/* FINISH CONFIRMATION MODAL */}
       {showFinishConfirm && (
