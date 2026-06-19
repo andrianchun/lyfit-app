@@ -97,8 +97,12 @@ const WorkoutTab = ({
   const handleOpenDetail = (ex) => {
      playSoundEffect('click', soundEnabled);
      // Ambil data lengkap (termasuk instructions & equipment) dari database
-     const fullEx = exerciseLibrary?.find(e => e.id === ex.id) || {};
-     setDetailExercise({ ...fullEx, ...ex });
+     let fullEx = exerciseLibrary?.find(e => String(e.id) === String(ex.id));
+     if (!fullEx) {
+         // Fallback ke nama jika ID beda format (angka vs string 'edb-...')
+         fullEx = exerciseLibrary?.find(e => e.name.toLowerCase() === ex.name.toLowerCase());
+     }
+     setDetailExercise({ ...(fullEx || {}), ...ex });
   };
 
   const handleSelectAlternative = (newEx) => {
