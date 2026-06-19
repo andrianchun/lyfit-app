@@ -13,6 +13,7 @@ const blankExercise = () => ({
   id: Date.now(),
   name: '',
   target: [],
+  instructions: [],
   type: 'weight',
   equipment: 'Dumbbell',
   defaultWeight: 0,
@@ -138,6 +139,18 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
             className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent}`}
           />
         </div>
+      </div>
+
+      {/* Instructions */}
+      <div>
+        <label className={`body-md ${t.textMuted} mb-1 block`}>{lang?.howTo || 'Cara Melakukan (Opsional)'}</label>
+        <textarea
+          value={Array.isArray(formData.instructions) ? formData.instructions.join('\n') : (formData.instructions || '')}
+          onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value.split('\n') }))}
+          placeholder="Langkah 1...&#10;Langkah 2..."
+          rows={3}
+          className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} resize-none`}
+        />
       </div>
 
       {/* Action Buttons */}
@@ -384,8 +397,12 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
     if (isCustom) {
       setIsAdding(false);
       setEditingId(ex.id);
-      const normalizedTarget = Array.isArray(ex.target) ? ex.target.map(normalizeMuscleKey) : [normalizeMuscleKey(ex.target || 'Lainnya')];
-      setFormData({ ...ex, target: normalizedTarget });
+      // Normalisasi target menjadi key (misal 'Dada Tengah' jadi 'chest_mid')
+      const normalizedTargets = (ex.target || []).map(m => {
+        const key = normalizeMuscleKey(m);
+        return key === 'full_body' ? m : key; // Fallback jika tidak dikenali
+      });
+      setFormData({ ...ex, target: normalizedTargets });
     } else {
       setIsAdding(true);
       setEditingId(null);

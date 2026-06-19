@@ -17,26 +17,28 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
         onClick={onOpenDetail}
       >
         {/* Thumbnail or Equipment Icon */}
-        {(() => {
-           const ytId = getVideoId(ex.ytVideo);
-           if (ytId) {
-              return <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt={ex.name} loading="lazy" className={`w-12 h-12 rounded-xl border ${t.border} object-cover flex-shrink-0 bg-black/5`} />;
-           } else if (ex.gifUrl) {
-              return <img src={ex.gifUrl} alt={ex.name} loading="lazy" className={`w-12 h-12 rounded-xl border ${t.border} object-cover flex-shrink-0 bg-black/5`} />;
-           } else {
-              return (
-                <div className={`w-12 h-12 rounded-xl border ${t.border} flex items-center justify-center flex-shrink-0 ${t.inputBg}`}>
-                  <EquipmentIcon equipment={ex.equipment} size={20} className={t.textMuted} />
-                </div>
-              );
-           }
-        })()}
+        <div className="relative inline-block flex-shrink-0">
+          {(() => {
+             const ytId = getVideoId(ex.ytVideo);
+             if (ytId) {
+                return <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt={ex.name} loading="lazy" className={`w-12 h-12 rounded-xl border ${t.border} object-cover bg-black/5`} />;
+             } else if (ex.gifUrl) {
+                return <img src={ex.gifUrl} alt={ex.name} loading="lazy" className={`w-12 h-12 rounded-xl border ${t.border} object-cover bg-black/5`} />;
+             } else {
+                return (
+                  <div className={`w-12 h-12 rounded-xl border ${t.border} flex items-center justify-center ${t.inputBg}`}>
+                    <EquipmentIcon equipment={ex.equipment} size={20} className={t.textMuted} />
+                  </div>
+                );
+             }
+          })()}
+          {isCustom && <div className="absolute -top-1.5 -right-1.5 px-1 py-0.5 bg-rose-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10">KUSTOM</div>}
+        </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <h4 className="body-lg font-black text-slate-100 truncate flex items-center gap-1.5">
              {ex.name}
-             {isCustom && <span className={`px-1.5 py-0.5 rounded font-black text-[10px] ${t.bgAccentSoft} ${t.textAccent}`}>C</span>}
           </h4>
           <p className={`body-md ${t.textAccent} truncate`}>{formatTarget(ex.target, lang?.id)}</p>
           <p className={`text-[10px] font-bold ${t.textMuted}`}>
