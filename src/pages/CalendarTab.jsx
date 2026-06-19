@@ -431,14 +431,28 @@ const CalendarTab = ({
           onSwipeLeft={() => {
             playSoundEffect('click', soundEnabled);
             setSlideDirection('right');
-            if (calendarMode === 'weekly') setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() + 7));
-            else setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+            if (calendarMode === 'weekly') {
+              const newDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() + 7);
+              setCalendarDate(newDate);
+              const newSelected = new Date(selectedDate);
+              newSelected.setDate(newSelected.getDate() + 7);
+              setSelectedDate(getLocalYMD(newSelected));
+            } else {
+              setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+            }
           }}
           onSwipeRight={() => {
             playSoundEffect('click', soundEnabled);
             setSlideDirection('left');
-            if (calendarMode === 'weekly') setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() - 7));
-            else setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+            if (calendarMode === 'weekly') {
+              const newDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() - 7);
+              setCalendarDate(newDate);
+              const newSelected = new Date(selectedDate);
+              newSelected.setDate(newSelected.getDate() - 7);
+              setSelectedDate(getLocalYMD(newSelected));
+            } else {
+              setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+            }
           }}
           onUpSwipe={() => {
             if (calendarMode === 'monthly') { setCalendarDate(new Date(selectedDate)); setCalendarMode('weekly'); playSoundEffect('click', soundEnabled); }
