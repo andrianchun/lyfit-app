@@ -16,6 +16,9 @@ const CalendarTab = ({
   const [showActionMenu, setShowActionMenu] = useState(null); 
   const [showProgramSelect, setShowProgramSelect] = useState(false);
   const [targetDateInput, setTargetDateInput] = useState('');
+
+  const scrollContainerRef = useRef(null);
+
   const [repeatDays, setRepeatDays] = useState(1);
   const [repeatCount, setRepeatCount] = useState(4);
   const [draggedDate, setDraggedDate] = useState(null);
@@ -464,10 +467,8 @@ const CalendarTab = ({
 
       {/* SCROLLABLE INLINE WORKOUT DETAILS */}
       <div 
+         ref={scrollContainerRef}
          className={`flex-1 overflow-y-auto hide-scrollbar pb-6 pt-10 sm:pt-6 px-3 sm:px-6 animate-in fade-in rounded-b-3xl sm:rounded-2xl border border-t-0 sm:border-t ${t.border} ${theme === 'dark' ? 'bg-[#061626]' : 'bg-[#f0f2f5]'} shadow-inner -mt-6 sm:mt-2 sm:mb-2 relative z-0`}
-         
-         
-         
          onScroll={(e) => {
             if (e.currentTarget.scrollTop > 20 && calendarMode === 'monthly') {
                setCalendarDate(new Date(selectedDate));
@@ -475,44 +476,6 @@ const CalendarTab = ({
             }
          }}
       >
-          {(hasCompleted || hasPlanned) && (
-              <div className="flex space-x-2 mb-6">
-                  <button onClick={() => { playSoundEffect('click', soundEnabled); setShowActionMenu(showActionMenu === 'copyMove' ? null : 'copyMove');}} className={`flex-1 py-3 rounded-xl caption font-bold ${t.btnBg} border ${showActionMenu === 'copyMove' ? t.borderAccent : t.border} flex items-center justify-center transition-colors`}><Copy size={16} className="mr-2"/> Salin / Pindah</button>
-                  <button onClick={() => { playSoundEffect('click', soundEnabled); setShowActionMenu(showActionMenu === 'repeat' ? null : 'repeat');}} className={`flex-1 py-3 rounded-xl caption font-bold ${t.btnBg} border ${showActionMenu === 'repeat' ? t.borderAccent : t.border} flex items-center justify-center transition-colors`}><Repeat size={16} className="mr-2"/> Rutinkan</button>
-              </div>
-          )}
-
-          {showActionMenu === 'copyMove' && (
-             <div className={`p-4 rounded-xl mb-6 bg-black/10 dark:bg-white/5 border border-dashed ${t.border} animate-in zoom-in-95`}>
-                 <label className="body-md mb-2 block">Pilih Tanggal Tujuan:</label>
-                 <input type="date" value={targetDateInput} onChange={(e) => setTargetDateInput(e.target.value)} className={`w-full ${t.inputBg} ${t.textMain} px-3 py-2 rounded-lg body-lg mb-3 outline-none focus:ring-1 focus:${t.ringAccent}`} />
-                 <div className="flex gap-2">
-                     <button onClick={() => handleCopyOrMove('copy')} className={`flex-1 py-2 rounded-lg font-bold caption ${t.bgAccentSoft} ${t.textAccent} border ${t.borderAccentSoft} hover:opacity-80`}>Salin Hari Ini</button>
-                     <button onClick={() => handleCopyOrMove('move')} className={`flex-1 py-2 rounded-lg font-bold caption ${t.bgAccentSoft} ${t.textAccent} border ${t.borderAccentSoft} hover:opacity-80`}>Pindah Hari Ini</button>
-                 </div>
-             </div>
-          )}
-
-          {showActionMenu === 'repeat' && (
-             <div className={`p-4 rounded-xl mb-6 bg-black/10 dark:bg-white/5 border border-dashed ${t.border} animate-in zoom-in-95`}>
-                 <div className="flex justify-between items-center mb-3">
-                     <span className="caption">Ulangi setiap</span>
-                     <div className="flex items-center space-x-2">
-                        <input type="number" value={repeatDays} onChange={(e) => setRepeatDays(Number(e.target.value))} className={`w-16 ${t.inputBg} ${t.textMain} px-2 py-1 rounded-lg body-lg text-center outline-none`} min="1" />
-                        <span className="caption w-6">Hari</span>
-                     </div>
-                 </div>
-                 <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-dashed border-slate-500/20 mb-4">
-                     <span className="caption">Sebanyak</span>
-                     <div className="flex items-center space-x-2">
-                        <input type="number" value={repeatCount} onChange={(e) => setRepeatCount(Number(e.target.value))} className={`w-16 ${t.inputBg} ${t.textMain} px-2 py-1 rounded-lg body-lg text-center outline-none`} min="1" />
-                        <span className="caption w-6">Kali</span>
-                     </div>
-                 </div>
-                 <button onClick={handleRepeat} className={`w-full py-3 rounded-lg body-lg font-black ${t.bgAccent} text-white hover:opacity-90`}>Terapkan Jadwal Berkala</button>
-             </div>
-          )}
-
             <div className="-mx-3 sm:-mx-6 flex-1 flex flex-col">
             <PanoramicSlider className="flex-1"
                onSwipeLeft={() => { 
@@ -528,6 +491,16 @@ const CalendarTab = ({
                    setSelectedDate(getLocalYMD(d));
                    setCalendarDate(new Date(d));
                    playSoundEffect('click', soundEnabled);
+               }}
+               onDownSwipe={() => {
+                   if (scrollContainerRef.current && scrollContainerRef.current.scrollTop <= 10 && calendarMode === 'weekly') {
+                       setCalendarMode('monthly');
+                   }
+               }}
+               onUpSwipe={() => {
+                   if (calendarMode === 'monthly') {
+                       setCalendarMode('weekly');
+                   }
                }}
                renderPanel={(panelType) => {
                    const d = new Date(selectedDate);
@@ -582,7 +555,7 @@ const CalendarTab = ({
                          )}
                        </div>
 
-                       <div className="space-y-4 mb-6 px-3 sm:px-6 flex-1">
+                       <div className="space-y-4 mb-6 px-3 sm:px-6">
                          {panelWorkouts.length === 0 ? (
                             <div className="p-4 text-center caption opacity-50">Tidak ada jadwal</div>
                          ) : (
