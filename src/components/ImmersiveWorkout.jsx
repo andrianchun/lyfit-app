@@ -282,7 +282,7 @@ const ImmersiveWorkout = ({
 
       {/* MAIN VISUAL (Center) */}
       <div 
-        className="flex-1 relative flex items-center justify-center mb-6 sm:mb-4 rounded-3xl mx-4 sm:mr-0 overflow-hidden shadow-2xl border border-white/10 group touch-pan-y"
+        className="flex-1 relative mb-6 sm:mb-4 rounded-3xl mx-4 sm:mr-0 overflow-hidden shadow-2xl border border-white/10 group touch-pan-y bg-black"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
