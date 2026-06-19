@@ -131,7 +131,7 @@ const ExerciseCard = ({
           </div>
 
           {sets.map((s, setIdx) => (
-            <div key={setIdx} className={`grid ${exType==='weight' ? 'grid-cols-[1.5fr_2.5fr_2.5fr_1.5fr]' : 'grid-cols-[1.5fr_3.5fr_1.5fr]'} gap-1 mb-1 items-center text-center transition-all ${s.done ? 'opacity-50' : ''}`}>
+            <div key={setIdx} className={`grid ${exType==='weight' ? 'grid-cols-[1.5fr_2.5fr_2.5fr_1.5fr]' : 'grid-cols-[1.5fr_3.5fr_1.5fr]'} gap-1 mb-1 items-center text-center transition-all ${s.skipped ? 'opacity-75' : s.done ? 'opacity-50' : ''}`}>
               
               <div className="relative flex justify-center">
                 <button 
@@ -179,8 +179,8 @@ const ExerciseCard = ({
               )}
 
               <div className="flex justify-center">
-                <button onClick={() => { playSoundEffect('click', soundEnabled); onToggleSet(ex.id, setIdx); }} disabled={activeTimer.idx === setIdx} className={`w-full max-w-[40px] h-8 rounded-lg flex justify-center items-center font-bold transition-all ${s.done ? t.bgAccent + ' border border-transparent' : 'bg-transparent border ' + t.borderAccentSoft + ' ' + t.textAccent + ' hover:bg-black/5 dark:hover:bg-white/5'} ${activeTimer.idx === setIdx ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                  <CheckCircle size={16} />
+                <button onClick={() => { playSoundEffect('click', soundEnabled); onToggleSet(ex.id, setIdx); }} disabled={activeTimer.idx === setIdx} className={`w-full max-w-[40px] h-8 rounded-lg flex justify-center items-center font-bold transition-all ${s.skipped ? 'bg-rose-500/20 text-rose-500 border border-rose-500/50 hover:bg-rose-500/30' : s.done ? t.bgAccent + ' border border-transparent text-white' : 'bg-transparent border ' + t.borderAccentSoft + ' ' + t.textAccent + ' hover:bg-black/5 dark:hover:bg-white/5'} ${activeTimer.idx === setIdx ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                  {s.skipped ? <X size={16} /> : <CheckCircle size={16} />}
                 </button>
               </div>
 

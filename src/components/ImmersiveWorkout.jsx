@@ -13,6 +13,7 @@ const ImmersiveWorkout = ({
   exerciseLogs,
   onSetChange,
   onToggleSet,
+  onSkipSet,
   onClose,
   onSaveWorkout,
   onCancelWorkout,
@@ -93,7 +94,11 @@ const ImmersiveWorkout = ({
     if (!ex) return;
     playSoundEffect('click', soundEnabled);
     if (!isAllDone) {
-      onToggleSet(ex.id, activeSetIdx);
+      if (onSkipSet) {
+        onSkipSet(ex.id, activeSetIdx);
+      } else {
+        onToggleSet(ex.id, activeSetIdx);
+      }
       // Immediately cancel the rest timer that App.jsx triggers
       setTimeout(() => {
         setRestTimer(0);
@@ -413,6 +418,7 @@ const ImmersiveWorkout = ({
               <div 
                 key={i} 
                 className={`h-2 rounded-full transition-all ${
+                  s.skipped ? `w-8 bg-rose-500` :
                   s.done ? `w-8 ${t.bgAccent}` : 
                   i === activeSetIdx ? `w-12 ${t.bgAccent}` : `w-4 ${theme === 'dark' ? 'bg-white/20' : 'bg-black/10'}`
                 }`} 

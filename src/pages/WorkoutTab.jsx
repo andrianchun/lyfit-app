@@ -21,7 +21,7 @@ const WorkoutTab = ({
   
   // --- PROPS DARI APP.JSX ---
   exerciseLogs, skippedExercises, extraExercises,
-  onSetChange, onToggleSet, onAddSet, onRemoveSet,
+  onSetChange, onToggleSet, onSkipSet, onAddSet, onRemoveSet,
   onToggleSkip, onRemoveExtra,
   isCurrentlyCompleted, onSaveWorkout, onCancelWorkout,
   onAddExtraClick, onAddExtraExercise,
@@ -221,6 +221,7 @@ const WorkoutTab = ({
           exerciseLogs={exerciseLogs}
           onSetChange={onSetChange}
           onToggleSet={onToggleSet}
+          onSkipSet={onSkipSet}
           onClose={() => setIsImmersiveMode(false)}
           onSaveWorkout={() => {
             setIsImmersiveMode(false);

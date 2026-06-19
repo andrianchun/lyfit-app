@@ -693,10 +693,14 @@ export default function App() {
       const currentLogs = prev[exId] ? [...prev[exId]] : getSetLogs(ex, exId);
       const isDoneNow = !currentLogs[setIdx].done;
       currentLogs[setIdx] = { ...currentLogs[setIdx], done: isDoneNow };
+      if (!isDoneNow) {
+        currentLogs[setIdx].skipped = false;
+      }
+      
       // Gunakan rest time per program, fallback ke default global
       const activeProgram = programs.find(p => p.id === activeProgramId) || programs[0];
       const programRestTime = activeProgram?.restTime || defaultRestTime;
-      if (isDoneNow) {
+      if (isDoneNow && !currentLogs[setIdx].skipped) {
         setRestTimer(programRestTime); // Legacy fallback
         setRestTargetTime(Date.now() + (programRestTime * 1000));
         if (!isWorkoutActive) {
@@ -708,6 +712,17 @@ export default function App() {
       return { ...prev, [exId]: currentLogs };
     });
     setLastActionTime(Date.now()); // Trigger Autosave
+  };
+
+  const handleSkipSet = (exId, setIdx) => {
+    playSoundEffect('click', soundEnabled);
+    setExerciseLogs(prev => {
+      const ex = getBaseEx(exId);
+      const currentLogs = prev[exId] ? [...prev[exId]] : getSetLogs(ex, exId);
+      currentLogs[setIdx] = { ...currentLogs[setIdx], done: true, skipped: true };
+      return { ...prev, [exId]: currentLogs };
+    });
+    setLastActionTime(Date.now());
   };
 
   const handleAddSet = (exId) => {
@@ -1031,7 +1046,7 @@ export default function App() {
                warmupVideos={warmupVideos} cooldownVideos={cooldownVideos} onOpenDetail={setGlobalDetailExercise}
                exerciseLibrary={exerciseLibrary}
                exerciseLogs={exerciseLogs} skippedExercises={skippedExercises} extraExercises={extraExercises}
-               onSetChange={handleSetChange} onToggleSet={handleToggleSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet}
+               onSetChange={handleSetChange} onToggleSet={handleToggleSet} onSkipSet={handleSkipSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet}
                onToggleSkip={handleToggleSkip} onRemoveExtra={handleRemoveExtraEx}
                isCurrentlyCompleted={isCurrentlyCompleted} onSaveWorkout={handleSaveWorkout} onCancelWorkout={handleCancelWorkout}
                onAddExtraClick={() => setActiveAddModalTarget({type: 'adhoc'})} 
