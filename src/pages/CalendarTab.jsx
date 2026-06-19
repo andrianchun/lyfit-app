@@ -299,26 +299,46 @@ const CalendarTab = ({
   };
   const selectedWorkouts = getSelectedWorkoutsForDate(selectedDate);
   
-  let gridCells = [];
-  const year = calendarDate.getFullYear();
-  const month = calendarDate.getMonth();
-  const monthName = calendarDate.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' });
-
-  if (calendarMode === 'monthly') {
-     const daysInMonth = new Date(year, month + 1, 0).getDate();
-     const firstDayOfMonth = new Date(year, month, 1).getDay();
-     for (let i=0; i<firstDayOfMonth; i++) gridCells.push(null);
-     for (let i=1; i<=daysInMonth; i++) gridCells.push(new Date(year, month, i));
-  } else {
-     const currentDayOfWeek = calendarDate.getDay();
-     const startOfWeek = new Date(calendarDate);
-     startOfWeek.setDate(calendarDate.getDate() - currentDayOfWeek);
-     for (let i=0; i<7; i++) {
+  const getGridCellsForDate = (baseDate) => {
+    const cells = [];
+    const y = baseDate.getFullYear();
+    const m = baseDate.getMonth();
+    if (calendarMode === 'monthly') {
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const firstDayOfMonth = new Date(y, m, 1).getDay();
+      for (let i = 0; i < firstDayOfMonth; i++) cells.push(null);
+      for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(y, m, i));
+    } else {
+      const currentDayOfWeek = baseDate.getDay();
+      const startOfWeek = new Date(baseDate);
+      startOfWeek.setDate(baseDate.getDate() - currentDayOfWeek);
+      for (let i = 0; i < 7; i++) {
         const d = new Date(startOfWeek);
         d.setDate(startOfWeek.getDate() + i);
-        gridCells.push(d);
-     }
-  }
+        cells.push(d);
+      }
+    }
+    return cells;
+  };
+
+  const getCalendarLabel = (baseDate) => {
+    return baseDate.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const getAdjacentCalendarDate = (baseDate, direction) => {
+    if (calendarMode === 'weekly') {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + (direction * 7));
+      return d;
+    } else {
+      return new Date(baseDate.getFullYear(), baseDate.getMonth() + direction, 1);
+    }
+  };
+
+  let gridCells = getGridCellsForDate(calendarDate);
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const monthName = getCalendarLabel(calendarDate);
 
   const getExercisesForWorkout = (w) => {
     if (w.programId === 'adhoc') return w.exercises || [];
@@ -404,58 +424,74 @@ const CalendarTab = ({
             <button onClick={() => { playSoundEffect('click', soundEnabled); setSlideDirection('right'); setCalendarDate(new Date(year, month + 1, 1));}} className={`p-2 rounded-lg ${t.btnBg} hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors`}><ChevronRight size={20}/></button>
           </div>
         
-        <div 
-          onTouchStart={onTouchStartEvent}
-          onTouchMove={onTouchMoveEvent}
-          onTouchEnd={onTouchEndEvent}
-          className="transition-transform"
-        >
-          <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-1 mb-2">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (<div key={i} className={`text-center caption uppercase ${t.textMuted}`}>{day}</div>))}
-          </div>
-          
-          <div key={calendarDate.toISOString() + calendarMode} className={`grid grid-cols-7 gap-0.5 sm:gap-1 animate-in fade-in ${slideDirection === 'right' ? 'slide-in-from-right-8' : 'slide-in-from-left-8'} duration-300`}>
-          {gridCells.map((dateObj, idx) => {
-            if (!dateObj) return <div key={`blank-${idx}`} className="p-1 sm:p-2"></div>;
-            
-            const dateKey = getLocalYMD(dateObj);
-            const day = dateObj.getDate();
-            const workouts = getDayWorkouts(dateKey); 
-            const isToday = dateKey === todayStr; 
-            const isSelected = dateKey === selectedDate;
-            const completedCount = workouts.filter(w => checkIsCompletedStrict(w, dateKey)).length;
-            
-            let cellStyle = `aspect-square p-0.5 sm:p-1 relative flex flex-col items-center justify-start rounded-lg transition-all cursor-pointer border border-transparent hover:border-slate-500/30 ${t.textMain}`;
-            if (isSelected) cellStyle += ` ring-2 ring-offset-2 ring-offset-${theme==='dark'?'black':'white'} ${t.ringAccent}`;
-            
-            const spanClass = isToday 
-               ? `flex items-center justify-center w-6 h-6 rounded-full ${t.bgAccent} text-white font-black body-md`
-               : `body-md font-medium ${workouts.length > 0 && completedCount === workouts.length ? t.textAccent : ''}`;
-            
+        </div>
+        <PanoramicSlider
+          onSwipeLeft={() => {
+            playSoundEffect('click', soundEnabled);
+            setSlideDirection('right');
+            if (calendarMode === 'weekly') setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() + 7));
+            else setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+          }}
+          onSwipeRight={() => {
+            playSoundEffect('click', soundEnabled);
+            setSlideDirection('left');
+            if (calendarMode === 'weekly') setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() - 7));
+            else setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+          }}
+          onUpSwipe={() => {
+            if (calendarMode === 'monthly') { setCalendarDate(new Date(selectedDate)); setCalendarMode('weekly'); playSoundEffect('click', soundEnabled); }
+          }}
+          onDownSwipe={() => {
+            if (calendarMode === 'weekly') { setCalendarMode('monthly'); playSoundEffect('click', soundEnabled); }
+          }}
+          renderPanel={(panelType) => {
+            let panelDate = calendarDate;
+            if (panelType === 'prev') panelDate = getAdjacentCalendarDate(calendarDate, -1);
+            else if (panelType === 'next') panelDate = getAdjacentCalendarDate(calendarDate, 1);
+            const panelCells = getGridCellsForDate(panelDate);
+
             return (
-              <div 
-                key={dateKey} 
-                onClick={() => { playSoundEffect('click', soundEnabled); setSelectedDate(dateKey); setShowProgramSelect(false); setShowActionMenu(null); }} 
-                draggable={workouts.length > 0}
-                onDragStart={(e) => handleDragStart(e, dateKey)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDrop(e, dateKey)}
-                className={cellStyle}
-              >
-                <span className={spanClass}>{day}</span>
-                
-                {workouts.length > 0 && (
-                  <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center px-1">
-                    {workouts.map(w => (
-                      <div key={w.id} className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${checkIsCompletedStrict(w, dateKey) ? (theme === 'dark' ? 'bg-[#41759b]' : 'bg-[#B79347]') : (theme === 'dark' ? 'bg-[#294c65]' : 'bg-[#CBB989]')}`} />
-                    ))}
-                  </div>
-                )}
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                {panelCells.map((dateObj, idx) => {
+                  if (!dateObj) return <div key={`blank-${idx}`} className="p-1 sm:p-2"></div>;
+                  const dateKey = getLocalYMD(dateObj);
+                  const day = dateObj.getDate();
+                  const workouts = getDayWorkouts(dateKey);
+                  const isToday = dateKey === todayStr;
+                  const isSelected = dateKey === selectedDate;
+                  const completedCount = workouts.filter(w => checkIsCompletedStrict(w, dateKey)).length;
+                  let cellStyle = `aspect-square p-0.5 sm:p-1 relative flex flex-col items-center justify-start rounded-lg transition-all cursor-pointer border border-transparent hover:border-slate-500/30 ${t.textMain}`;
+                  if (isSelected) cellStyle += ` ring-2 ring-offset-2 ring-offset-${theme==='dark'?'black':'white'} ${t.ringAccent}`;
+                  const spanClass = isToday
+                    ? `flex items-center justify-center w-6 h-6 rounded-full ${t.bgAccent} text-white font-black body-md`
+                    : `body-md font-medium ${workouts.length > 0 && completedCount === workouts.length ? t.textAccent : ''}`;
+                  return (
+                    <div
+                      key={dateKey}
+                      onClick={() => { playSoundEffect('click', soundEnabled); setSelectedDate(dateKey); setShowProgramSelect(false); setShowActionMenu(null); }}
+                      draggable={workouts.length > 0}
+                      onDragStart={(e) => handleDragStart(e, dateKey)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => handleDrop(e, dateKey)}
+                      className={cellStyle}
+                    >
+                      <span className={spanClass}>{day}</span>
+                      {workouts.length > 0 && (
+                        <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center px-1">
+                          {workouts.map(w => (
+                            <div key={w.id} className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${checkIsCompletedStrict(w, dateKey) ? (theme === 'dark' ? 'bg-[#41759b]' : 'bg-[#B79347]') : (theme === 'dark' ? 'bg-[#294c65]' : 'bg-[#CBB989]')}`} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
-          })}
-          </div>
-        </div>
+          }}
+        />
         <button 
             onClick={() => { playSoundEffect('click', soundEnabled); if (calendarMode === 'monthly') setCalendarDate(new Date(selectedDate)); setCalendarMode(calendarMode === 'monthly' ? 'weekly' : 'monthly'); }}
             className="w-full flex items-center justify-center pt-3 pb-1 -mb-2 mt-2 text-zinc-500 hover:text-emerald-500 transition-colors"
