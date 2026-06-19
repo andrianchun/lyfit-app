@@ -5,16 +5,21 @@ const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshol
   const [isReady, setIsReady] = useState(false);
   const isResetting = useRef(false);
 
+  // Touch tracking to prevent mid-drag resets
+  const isTouching = useRef(false);
+
   // Vertical swipe detection
   const touchStartY = useRef(null);
   const touchStartX = useRef(null);
 
   const handleTouchStart = (e) => {
+    isTouching.current = true;
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e) => {
+    isTouching.current = false;
     if (touchStartY.current === null || touchStartX.current === null) return;
     const touchEndY = e.changedTouches[0].clientY;
     const touchEndX = e.changedTouches[0].clientX;
@@ -44,7 +49,9 @@ const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshol
   }, []);
 
   const handleScroll = (e) => {
-    if (!isReady || isResetting.current) return;
+    // DO NOT reset if the user is still actively dragging
+    if (!isReady || isResetting.current || isTouching.current) return;
+    
     const el = e.currentTarget;
     const cw = el.clientWidth;
     if (cw === 0) return;
@@ -53,19 +60,25 @@ const PanoramicSlider = ({ onSwipeLeft, onSwipeRight, renderPanel, swipeThreshol
     if (el.scrollLeft <= 1) {
       isResetting.current = true;
       onSwipeRight();
-      if (scrollRef.current) {
-         scrollRef.current.style.scrollBehavior = 'auto';
-         scrollRef.current.scrollLeft = cw;
-      }
-      setTimeout(() => { isResetting.current = false; }, 50);
+      
+      // Instant momentum kill trick
+      el.style.overflowX = 'hidden';
+      el.scrollLeft = cw;
+      void el.offsetHeight; // Force reflow
+      el.style.overflowX = 'auto';
+      
+      setTimeout(() => { isResetting.current = false; }, 30);
     } else if (el.scrollLeft >= cw * 2 - 1) {
       isResetting.current = true;
       onSwipeLeft();
-      if (scrollRef.current) {
-         scrollRef.current.style.scrollBehavior = 'auto';
-         scrollRef.current.scrollLeft = cw;
-      }
-      setTimeout(() => { isResetting.current = false; }, 50);
+      
+      // Instant momentum kill trick
+      el.style.overflowX = 'hidden';
+      el.scrollLeft = cw;
+      void el.offsetHeight; // Force reflow
+      el.style.overflowX = 'auto';
+      
+      setTimeout(() => { isResetting.current = false; }, 30);
     }
   };
 
