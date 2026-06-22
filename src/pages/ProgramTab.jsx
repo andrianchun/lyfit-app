@@ -1,131 +1,190 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, GripVertical, ArrowUp, ArrowDown, Clock, Flame, Link as LinkIcon, X, Dumbbell, ChevronRight, Copy } from 'lucide-react';
+import { Plus, GripVertical, ArrowUp, ArrowDown, Clock, Link as LinkIcon, X, Dumbbell, ChevronRight, ChevronDown, ChevronUp, Copy, Sparkles, FolderOpen, Trash2, CheckCircle2, Calendar, Edit2 } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { formatTarget } from '../data/constants';
 import { playSoundEffect } from '../utils/audio';
 
-const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseLibrary, soundEnabled, setActiveAddModalTarget, saveStateToHistory }) => {
+const SortableExerciseItem = ({ ex, idx, routineId, t, lang, soundEnabled, handleUpdateExercise, handleRemoveExercise, getEquipmentColor }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: ex.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+    position: 'relative',
+  };
+
+  const isTime = ex.type === 'time';
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`relative p-4 rounded-2xl border ${t.border} transition-colors duration-300 ${isDragging ? 'shadow-2xl ring-2 ' + t.ringAccent + ' scale-[1.02] opacity-90' : 'hover:shadow-md'} ${t.bgCard}`}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div 
+          {...attributes} 
+          {...listeners}
+          className={`cursor-grab active:cursor-grabbing p-2 -ml-2 ${t.textMuted} hover:${t.textMain} transition-colors flex-shrink-0 touch-none`} 
+          title="Tahan dan geser untuk mengurutkan"
+        >
+          <GripVertical size={20} />
+        </div>
+        <span className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-black ${t.bgAccent} text-white flex-shrink-0`}>{idx + 1}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`text-base font-bold ${t.textMain} truncate`}>{ex.name}</p>
+          <p className={`text-xs font-medium ${t.textAccent} truncate`}>{formatTarget(ex.target, lang?.id)}</p>
+        </div>
+        <button onClick={() => handleRemoveExercise(routineId, ex.id)} className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors flex-shrink-0 ml-1"><X size={16} /></button>
+      </div>
+      <div className="flex items-center justify-between">
+        {ex.equipment ? <span className={`px-3 py-1 rounded-md text-[10px] font-bold ${getEquipmentColor(ex.equipment)}`}>{ex.equipment}</span> : <div></div>}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[11px] font-bold ${t.textMuted} uppercase`}>Sets</span>
+            <input type="number" value={ex.sets === 0 ? '' : ex.sets} onChange={(e) => handleUpdateExercise(routineId, ex.id, 'sets', e.target.value)} placeholder="0" min="0" className={`w-14 px-2 py-1.5 rounded-xl ${t.inputBg} ${t.textMain} text-center font-bold text-sm outline-none focus:ring-1 ${t.ringAccent} transition-all`} />
+          </div>
+          {isTime ? (
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[11px] font-bold ${t.textMuted} uppercase`}>Min</span>
+              <input type="number" value={ex.duration === 0 ? '' : ex.duration} onChange={(e) => handleUpdateExercise(routineId, ex.id, 'duration', e.target.value)} placeholder="0" min="0" className={`w-14 px-2 py-1.5 rounded-xl ${t.inputBg} ${t.textMain} text-center font-bold text-sm outline-none focus:ring-1 ${t.ringAccent} transition-all`} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[11px] font-bold ${t.textMuted} uppercase`}>Reps</span>
+              <input type="number" value={ex.reps === 0 ? '' : ex.reps} onChange={(e) => handleUpdateExercise(routineId, ex.id, 'reps', e.target.value)} placeholder="0" min="0" className={`w-14 px-2 py-1.5 rounded-xl ${t.inputBg} ${t.textMain} text-center font-bold text-sm outline-none focus:ring-1 ${t.ringAccent} transition-all`} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseLibrary, soundEnabled, setActiveAddModalTarget, saveStateToHistory, openQuestionnaire, activePlanId, setActivePlanId }) => {
 
   // ==========================================
   // STATE
   // ==========================================
-  const [selectedProgramId, setSelectedProgramId] = useState(programs[0]?.id || null);
+  const [expandedRoutineId, setExpandedRoutineId] = useState(null);
   const [warmupUrlInput, setWarmupUrlInput] = useState('');
-  const [reorderingId, setReorderingId] = useState(null); // animation helper
-  const pillScrollRef = useRef(null);
-
-  // Derive active program
-  const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
-  const activeProgramId = activeProgram?.id;
-
-  // Sync selectedProgramId if it becomes stale (e.g. after delete)
-  useEffect(() => {
-    if (!programs.find(p => p.id === selectedProgramId) && programs.length > 0) {
-      setSelectedProgramId(programs[0].id);
-    }
-  }, [programs, selectedProgramId]);
+  const [reorderingId, setReorderingId] = useState(null); 
+  const [draggedExId, setDraggedExId] = useState(null);
+  const [dragOverExId, setDragOverExId] = useState(null);
 
   // ==========================================
-  // PROGRAM-LEVEL HANDLERS
+  // PROGRAM/PLAN HANDLERS
   // ==========================================
-  const handleCreateProgram = () => {
+  const handleCreateRoutine = (targetPlanId) => {
     playSoundEffect('click', soundEnabled);
     const newProg = {
       id: 'prog-' + Date.now(),
-      name: 'Program Baru',
+      name: 'Rutinitas Baru',
       restTime: 120,
       warmupVideoUrls: [],
-      exercises: []
+      exercises: [],
+      planId: targetPlanId === 'custom' ? null : targetPlanId
     };
     setPrograms([...programs, newProg]);
-    setSelectedProgramId(newProg.id);
-    // Auto-scroll pill row to end
-    setTimeout(() => {
-      if (pillScrollRef.current) {
-        pillScrollRef.current.scrollLeft = pillScrollRef.current.scrollWidth;
-      }
-    }, 100);
+    setExpandedRoutineId(newProg.id);
   };
 
-  const handleDeleteProgram = () => {
+  const handleDeleteRoutine = (routineId, routineName) => {
     if (programs.length <= 1) return;
     playSoundEffect('click', soundEnabled);
     setConfirmModal({
       isOpen: true,
-      title: 'Hapus Program',
-      message: lang.confirmDeleteProgram || `Yakin ingin menghapus program "${activeProgram.name}"?`,
+      title: 'Hapus Rutinitas',
+      message: `Yakin ingin menghapus rutinitas "${routineName}"? Data latihan di dalamnya akan ikut terhapus.`,
       onConfirm: () => {
-        const remaining = programs.filter(p => p.id !== activeProgramId);
+        const remaining = programs.filter(p => p.id !== routineId);
         setPrograms(remaining);
-        setSelectedProgramId(remaining[0]?.id);
+        if (expandedRoutineId === routineId) setExpandedRoutineId(null);
       }
     });
   };
 
-  const handleDuplicateProgram = () => {
+  const handleDeletePlan = (planId, planName) => {
+    playSoundEffect('click', soundEnabled);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Seluruh Program',
+      message: `PERINGATAN KERAS: Yakin ingin menghapus seluruh program "${planName}" beserta semua rutinitas di dalamnya? Tindakan ini tidak bisa dibatalkan!`,
+      onConfirm: () => {
+        const remaining = programs.filter(p => (p.planId || 'custom') !== planId);
+        setPrograms(remaining);
+        if (activePlanId === planId) {
+          setActivePlanId('custom');
+        }
+      }
+    });
+  };
+
+  const handleDuplicateRoutine = (routine) => {
     playSoundEffect('click', soundEnabled);
     const dupe = {
-      ...activeProgram,
+      ...routine,
       id: 'prog-' + Date.now(),
-      name: activeProgram.name + ' (Copy)',
-      exercises: activeProgram.exercises.map(ex => ({ ...ex })),
-      warmupVideoUrls: [...(activeProgram.warmupVideoUrls || [])]
+      name: routine.name + ' (Copy)',
+      exercises: routine.exercises.map(ex => ({ ...ex })),
+      warmupVideoUrls: [...(routine.warmupVideoUrls || [])]
     };
     setPrograms([...programs, dupe]);
-    setSelectedProgramId(dupe.id);
+    setExpandedRoutineId(dupe.id);
   };
 
-  const handleRenameProgram = (newName) => {
-    setPrograms(programs.map(p => p.id === activeProgramId ? { ...p, name: newName } : p));
-  };
-
-  // ==========================================
-  // REST TIME HANDLERS
-  // ==========================================
-  const handleRestTimeChange = (val) => {
-    setPrograms(programs.map(p => p.id === activeProgramId ? { ...p, restTime: Number(val) } : p));
+  const handleRenameRoutine = (routineId, newName) => {
+    setPrograms(programs.map(p => p.id === routineId ? { ...p, name: newName } : p));
   };
 
   // ==========================================
-  // WARMUP VIDEO HANDLERS
+  // REST TIME & WARMUP
   // ==========================================
-  const handleAddWarmupUrl = () => {
-    const url = warmupUrlInput.trim();
-    if (!url) return;
-    playSoundEffect('click', soundEnabled);
-    setPrograms(programs.map(p => p.id === activeProgramId ? {
-      ...p,
-      warmupVideoUrls: [...(p.warmupVideoUrls || []), url]
-    } : p));
-    setWarmupUrlInput('');
+  const restPresets = [60, 90, 120, 180];
+  const handleRestTimeChange = (routineId, val) => {
+    setPrograms(programs.map(p => p.id === routineId ? { ...p, restTime: Number(val) } : p));
   };
 
-  const handleRemoveWarmupUrl = (idx) => {
-    playSoundEffect('click', soundEnabled);
-    setPrograms(programs.map(p => p.id === activeProgramId ? {
-      ...p,
-      warmupVideoUrls: (p.warmupVideoUrls || []).filter((_, i) => i !== idx)
-    } : p));
+  const handleToggleAssignedDay = (routineId, day) => {
+    setPrograms(programs.map(p => {
+      if (p.id !== routineId) return p;
+      const currentDays = p.assignedDays || [];
+      const newDays = currentDays.includes(day) 
+        ? currentDays.filter(d => d !== day)
+        : [...currentDays, day];
+      return { ...p, assignedDays: newDays };
+    }));
   };
 
   // ==========================================
   // EXERCISE HANDLERS
   // ==========================================
-  const handleUpdateExercise = (exId, field, val) => {
+  const handleUpdateExercise = (routineId, exId, field, val) => {
     const numVal = val === '' ? '' : Number(val);
-    setPrograms(programs.map(p => p.id === activeProgramId ? {
+    setPrograms(programs.map(p => p.id === routineId ? {
       ...p,
       exercises: p.exercises.map(ex => ex.id === exId ? { ...ex, [field]: numVal } : ex)
     } : p));
   };
 
-  const handleRemoveExercise = (exId) => {
+  const handleRemoveExercise = (routineId, exId) => {
     setConfirmModal({
       isOpen: true,
       title: 'Hapus Latihan?',
-      message: lang.confirmRemoveEx || 'Yakin ingin menghapus latihan ini dari program?',
+      message: 'Yakin ingin menghapus latihan ini dari rutinitas?',
       onConfirm: () => {
         playSoundEffect('click', soundEnabled);
-        setPrograms(programs.map(p => p.id === activeProgramId ? {
+        setPrograms(programs.map(p => p.id === routineId ? {
           ...p,
           exercises: p.exercises.filter(ex => ex.id !== exId)
         } : p));
@@ -133,31 +192,42 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
     });
   };
 
-  const handleMoveExercise = (idx, direction) => {
-    playSoundEffect('swipe', soundEnabled);
-    const newIdx = idx + direction;
-    const exList = [...activeProgram.exercises];
-    if (newIdx < 0 || newIdx >= exList.length) return;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    // Set animation hint
-    setReorderingId(exList[idx].id);
-    setTimeout(() => setReorderingId(null), 350);
-
-    // Swap
-    [exList[idx], exList[newIdx]] = [exList[newIdx], exList[idx]];
-    setPrograms(programs.map(p => p.id === activeProgramId ? { ...p, exercises: exList } : p));
+  const handleDragEndDnd = (event, routineId) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      playSoundEffect('swipe', soundEnabled);
+      setPrograms(programs.map(p => {
+        if (p.id !== routineId) return p;
+        const oldIndex = p.exercises.findIndex(ex => ex.id === active.id);
+        const newIndex = p.exercises.findIndex(ex => ex.id === over.id);
+        return {
+          ...p,
+          exercises: arrayMove(p.exercises, oldIndex, newIndex)
+        };
+      }));
+    }
   };
 
-  const handleAddExercise = () => {
+  const handleAddExercise = (routineId) => {
     playSoundEffect('click', soundEnabled);
-    setActiveAddModalTarget({ type: 'program', progId: activeProgramId });
+    setActiveAddModalTarget({ type: 'program', progId: routineId });
   };
 
   // ==========================================
   // HELPERS
   // ==========================================
-  const restPresets = [60, 90, 120, 180];
-
   const getEquipmentColor = (eq) => {
     const colors = {
       'Dumbbell': 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
@@ -165,388 +235,275 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
       'Smith Machine': 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
       'Cable/Machine': 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
       'Bodyweight': 'bg-pink-500/15 text-pink-600 dark:text-pink-400',
-      'Cardio Machine': 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
     };
     return colors[eq] || 'bg-gray-500/15 text-gray-600 dark:text-gray-400';
   };
 
+  // Group programs by Plan (Umbrella)
+  const groupedPrograms = programs.reduce((acc, prog) => {
+    const key = prog.planId || 'custom';
+    if (!acc[key]) acc[key] = { planId: key, planName: prog.planName || 'Custom Program', planLevel: prog.planLevel, routines: [], assignedDays: prog.assignedDays || [] };
+    acc[key].routines.push(prog);
+    return acc;
+  }, {});
+
   // ==========================================
-  // RENDER: No programs fallback
+  // RENDER ROUTINE EDITOR (Accordion Body)
   // ==========================================
-  if (!programs || programs.length === 0) {
+  const renderRoutineEditor = (routine) => {
     return (
-      <div className="animate-in fade-in duration-300 flex flex-col items-center justify-center py-20">
-        <Dumbbell size={48} className={`${t.textMuted} mb-4`} />
-        <p className={`font-bold ${t.textMuted} mb-6`}>{lang.noPrograms || 'Belum ada program.'}</p>
-        <button
-          onClick={handleCreateProgram}
-          className={`flex items-center px-6 py-3.5 rounded-xl text-white font-black body-lg ${t.bgAccent} shadow-lg hover:opacity-90 transition-all active:scale-95`}
-        >
-          <Plus size={18} className="mr-2" /> {lang.createProgram || 'Buat Program Pertama'}
-        </button>
+      <div className={`p-5 bg-black/5 dark:bg-white/5 border-t ${t.border} space-y-5 animate-in slide-in-from-top-2 fade-in duration-300`}>
+        
+        {/* Editor Header: Rename & Actions */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className={`flex-1 min-w-0 relative group h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl border border-transparent focus-within:border-blue-500/50 dark:focus-within:border-blue-400/50 transition-all`}>
+            <input
+              type="text"
+              value={routine.name}
+              onChange={(e) => handleRenameRoutine(routine.id, e.target.value)}
+              style={{
+                WebkitMaskImage: 'linear-gradient(to left, transparent 40px, black 80px)',
+                maskImage: 'linear-gradient(to left, transparent 40px, black 80px)'
+              }}
+              className={`w-full h-full bg-transparent pl-4 pr-11 font-bold text-lg ${t.textMain} outline-none transition-all`}
+              placeholder="Nama Rutinitas..."
+            />
+            <div className={`absolute right-4 top-1/2 -translate-y-1/2 ${t.textMuted} group-hover:text-blue-500 transition-colors pointer-events-none opacity-50 group-focus-within:opacity-100 group-focus-within:text-blue-500`}>
+              <Edit2 size={16} />
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button onClick={() => handleDuplicateRoutine(routine)} className={`flex items-center justify-center w-11 h-11 rounded-xl ${t.bgCard} border ${t.border} ${t.textMuted} hover:${t.textAccent} transition-colors`}><Copy size={16} /></button>
+            <button onClick={() => handleDeleteRoutine(routine.id, routine.name)} disabled={programs.length <= 1} className={`flex items-center justify-center w-11 h-11 rounded-xl border transition-colors ${programs.length <= 1 ? 'opacity-30 cursor-not-allowed border-gray-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20'}`}><Trash2 size={16} /></button>
+          </div>
+        </div>
+
+        {/* Assigned Days Selector */}
+        <div className={`p-4 rounded-2xl ${t.bgCard} shadow-sm border ${t.border}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <h4 className={`font-bold text-sm ${t.textMain}`}>Jadwal Hari</h4>
+          </div>
+          <div className="flex justify-between w-full gap-1 sm:gap-2">
+            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(day => {
+              const isSelected = (routine.assignedDays || []).includes(day);
+              return (
+                <button 
+                  key={day}
+                  onClick={() => { playSoundEffect('click', soundEnabled); handleToggleAssignedDay(routine.id, day); }}
+                  className={`flex-1 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold transition-all duration-150 ${isSelected ? `${t.bgAccent} text-white shadow-md scale-105` : `${t.inputBg} ${t.textMuted} hover:${t.textMain}`}`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Rest Time */}
+        <div className={`p-4 rounded-2xl ${t.bgCard} shadow-sm border ${t.border}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h4 className={`font-bold text-sm ${t.textMain}`}>Waktu Istirahat (Set)</h4>
+            </div>
+            <span className={`text-lg font-black ${t.textAccent}`}>{routine.restTime || 120}s</span>
+          </div>
+          
+          <div className="px-1 mb-4">
+            <input 
+              type="range" 
+              min="0" 
+              max="300" 
+              step="5" 
+              value={routine.restTime || 120} 
+              onChange={(e) => handleRestTimeChange(routine.id, parseInt(e.target.value))}
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${t.inputBg} outline-none`}
+            />
+            <div className={`flex justify-between mt-2 text-[10px] font-bold ${t.textMuted}`}>
+              <span>0s</span>
+              <span>150s</span>
+              <span>300s</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {restPresets.map(preset => (
+              <button key={preset} onClick={() => { playSoundEffect('click', soundEnabled); handleRestTimeChange(routine.id, preset); }} className={`py-1.5 rounded-xl text-xs font-bold transition-all duration-150 ${(routine.restTime || 120) === preset ? `${t.bgAccent} text-white shadow-md scale-105` : `${t.inputBg} ${t.textMuted} hover:${t.textMain}`}`}>{preset}s</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Exercises */}
+        <div className={`p-4 rounded-2xl ${t.bgCard} shadow-sm border ${t.border}`}>
+          <div className="flex items-center gap-2 mb-4">
+            <h4 className={`font-bold text-sm ${t.textMain}`}>Daftar Latihan ({routine.exercises.length})</h4>
+          </div>
+
+          {routine.exercises.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center py-6 rounded-2xl border-2 border-dashed ${t.borderAccentSoft}`}>
+              <p className={`text-sm ${t.textMuted} mb-3`}>Belum ada latihan di rutinitas ini.</p>
+              <button onClick={() => handleAddExercise(routine.id)} className={`flex items-center px-4 py-2 rounded-xl text-white font-bold text-xs ${t.bgAccent} shadow-md hover:opacity-90 transition-all active:scale-95`}><Plus size={14} className="mr-1" /> Tambah Latihan</button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(e) => handleDragEndDnd(e, routine.id)}
+              >
+                <SortableContext items={routine.exercises.map(ex => ex.id)} strategy={verticalListSortingStrategy}>
+                  {routine.exercises.map((ex, idx) => (
+                    <SortableExerciseItem
+                      key={ex.id}
+                      ex={ex}
+                      idx={idx}
+                      routineId={routine.id}
+                      t={t}
+                      lang={lang}
+                      soundEnabled={soundEnabled}
+                      handleUpdateExercise={handleUpdateExercise}
+                      handleRemoveExercise={handleRemoveExercise}
+                      getEquipmentColor={getEquipmentColor}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
+
+          {routine.exercises.length > 0 && (
+            <button onClick={() => handleAddExercise(routine.id)} className={`w-full mt-3 py-3 border-2 border-dashed ${t.borderAccentSoft} hover:${t.borderAccent} hover:${t.bgAccentSoft} rounded-xl ${t.textAccent} font-bold text-sm flex justify-center items-center transition-all duration-200 active:scale-[0.98]`}>
+              <Plus size={16} className="mr-1.5" /> Tambah Latihan
+            </button>
+          )}
+        </div>
+
       </div>
     );
-  }
+  };
 
   // ==========================================
-  // RENDER
+  // RENDER MAIN
   // ==========================================
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6 animate-in fade-in duration-300 pb-10">
+    <div className="flex flex-col animate-in fade-in duration-300 pb-20 max-w-2xl mx-auto w-full space-y-6">
 
-      {/* ===== SECTION 1: PROGRAM PILL TABS ===== */}
-      <div className="relative w-full sm:w-[35%] sm:sticky sm:top-20 sm:pr-2">
-        <div
-          ref={pillScrollRef}
-          className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-x-visible md:flex-wrap md:overflow-visible hide-scrollbar pb-1 sm:pb-4 -mx-1 sm:mx-0 px-1 sm:px-0"
-        >
-          {programs.map(prog => (
-            <button
-              key={prog.id}
-              onClick={() => { playSoundEffect('click', soundEnabled); setSelectedProgramId(prog.id); }}
-              className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-bold body-md whitespace-nowrap transition-all duration-200 active:scale-95
-                ${prog.id === activeProgramId
-                  ? `${t.bgAccent} text-white shadow-lg`
-                  : `${t.bgCard} ${t.textMuted} border ${t.border} hover:${t.textMain}`
-                }`}
-            >
-              {prog.name}
-              <span className={`ml-1.5 sm:ml-auto sm:text-[11px] text-[10px] opacity-70`}>({prog.exercises.length})</span>
-            </button>
-          ))}
-
-          {/* Create new program button */}
-          <button
-            onClick={handleCreateProgram}
-            className={`flex-shrink-0 flex items-center justify-center px-4 py-2.5 rounded-xl font-bold body-md whitespace-nowrap border-2 border-dashed ${t.borderAccentSoft} ${t.textAccent} hover:${t.bgAccentSoft} transition-all duration-200 active:scale-95`}
-          >
-            <Plus size={14} className="mr-1" /> {lang.newProgram || 'Buat Baru'}
-          </button>
+      {/* Banner AI Coach */}
+      <div 
+        onClick={openQuestionnaire}
+        className={`w-full text-left p-5 rounded-3xl ${t.bgAccentSoft} border ${t.borderAccentSoft} shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:scale-[1.02] active:scale-95`}
+      >
+        <div className={`absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500 ${t.textAccent}`}>
+          <Sparkles size={80} />
         </div>
+        <div className="flex items-center gap-2 mb-2 relative z-10">
+          <Sparkles size={18} className={t.textAccent} />
+          <h3 className={`font-black text-lg ${t.textAccent}`}>Buat Program</h3>
+        </div>
+        <p className={`text-sm ${t.textMuted} mb-4 relative z-10 pr-10`}>
+          Jawab beberapa pertanyaan dan biarkan algoritma cerdas kami meracik program latihan terbaik yang dipersonalisasi untuk Anda.
+        </p>
+        <button 
+          onClick={() => { playSoundEffect('click', soundEnabled); setShowQuestionnaire(true); }}
+          className={`w-full py-3 rounded-xl font-black text-white bg-gradient-to-r ${t.gradientBg} shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 relative z-10`}
+        >
+          <Plus size={18} /> Mulai Buat Program
+        </button>
       </div>
 
-      {/* ===== SECTION 2: PROGRAM DETAIL ===== */}
-      {activeProgram && (
-        <div className="space-y-5 w-full sm:w-[65%] mt-6 sm:mt-0">
+      {/* Programs List */}
+      <div className="space-y-6">
+        {Object.entries(groupedPrograms).map(([planId, group]) => {
+          const isActive = activePlanId === planId;
 
-          {/* --- 2a: PROGRAM HEADER --- */}
-          <div className={`p-5 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <input
-                  type="text"
-                  value={activeProgram.name}
-                  onChange={(e) => handleRenameProgram(e.target.value)}
-                  className={`w-full bg-transparent h1 ${t.textMain} outline-none border-b-2 border-transparent focus:${t.borderAccentSoft} transition-colors pb-1`}
-                  placeholder="Nama Program..."
-                />
-                <p className={`body-md ${t.textMuted} mt-2`}>
-                  {activeProgram.exercises.length} {lang.exercises || 'latihan'} · {activeProgram.restTime || 120}s {lang.rest || 'istirahat'}
-                </p>
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button
-                  onClick={handleDuplicateProgram}
-                  className={`p-3 rounded-xl ${t.bgCard} border ${t.border} ${t.textMuted} hover:${t.textAccent} transition-colors`}
-                  title={lang.duplicate || 'Duplikat'}
-                >
-                  <Copy size={18} />
-                </button>
-                <button
-                  onClick={handleDeleteProgram}
-                  disabled={programs.length <= 1}
-                  className={`p-2 rounded-xl border transition-colors flex-shrink-0 flex items-center justify-center w-10 h-10 ${
-                    programs.length <= 1
-                      ? 'opacity-30 cursor-not-allowed border-gray-300 text-gray-400'
-                      : 'bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20'
-                  }`}
-                  title={lang.delete || 'Hapus Program'}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* --- 2b: REST TIME --- */}
-          <div className={`p-5 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm`}>
-            <div className="flex items-center gap-2 mb-4">
-              <Clock size={18} className={t.textAccent} />
-              <h3 className={`font-black body-lg ${t.textMain}`}>⏱ {lang.restTime || 'Waktu Istirahat'}</h3>
-            </div>
-
-            <div className="flex items-center gap-4 mb-4">
-              <input
-                type="range"
-                min="30"
-                max="300"
-                step="5"
-                value={activeProgram.restTime || 120}
-                onChange={(e) => handleRestTimeChange(e.target.value)}
-                className="flex-1 h-2 rounded-full appearance-none cursor-pointer accent-current"
-                style={{
-                  background: `linear-gradient(to right, var(--accent-color, #6366f1) ${((activeProgram.restTime - 30) / 270) * 100}%, rgba(128,128,128,0.2) ${((activeProgram.restTime - 30) / 270) * 100}%)`
-                }}
-              />
-              <div className={`h1 ${t.textAccent} min-w-[80px] text-right`}>
-                {activeProgram.restTime || 120}<span className="body-lg opacity-60 ml-0.5">s</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2.5 flex-wrap">
-              {restPresets.map(preset => (
-                <button
-                  key={preset}
-                  onClick={() => { playSoundEffect('click', soundEnabled); handleRestTimeChange(preset); }}
-                  className={`px-4 py-2 rounded-xl body-md transition-all duration-150 active:scale-95
-                    ${(activeProgram.restTime || 120) === preset
-                      ? `${t.bgAccent} text-white shadow-md`
-                      : `${t.inputBg} ${t.textMuted} hover:${t.textMain}`
-                    }`}
-                >
-                  {preset}s
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* --- 2c: WARMUP VIDEOS --- */}
-          <div className={`p-5 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Flame size={18} className="text-orange-500" />
-              <h3 className={`font-black body-lg ${t.textMain}`}>🔥 {lang.warmupVideos || 'Video Pemanasan Kustom'}</h3>
-            </div>
-            <p className={`body-md ${t.textMuted} mb-4`}>
-              {lang.warmupDesc || 'Kosongkan untuk menggunakan pemanasan default.'}
-            </p>
-
-            {/* Existing URLs */}
-            {(activeProgram.warmupVideoUrls || []).length > 0 && (
-              <div className="space-y-2 mb-4">
-                {activeProgram.warmupVideoUrls.map((url, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl ${t.inputBg} group`}
-                  >
-                    <LinkIcon size={14} className={`${t.textMuted} flex-shrink-0`} />
-                    <span className={`body-md ${t.textMain} truncate flex-1`}>{url}</span>
-                    <button
-                      onClick={() => handleRemoveWarmupUrl(idx)}
-                      className="p-2 rounded-lg text-rose-500 opacity-0 group-hover:opacity-100 hover:bg-rose-500/10 transition-all flex-shrink-0"
-                    >
-                      <X size={16} />
-                    </button>
+          return (
+            <div key={planId} className={`rounded-3xl border-2 ${isActive ? t.borderAccent : t.border} ${t.bgCard} shadow-sm overflow-hidden transition-colors`}>
+              
+              {/* PLAN HEADER */}
+              <div className={`p-5 ${isActive ? t.bgAccentSoft : ''}`}>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className={`font-black text-xl flex items-center gap-2 ${isActive ? t.textAccent : t.textMain}`}>
+                      {planId !== 'custom' && <Sparkles size={18} className={isActive ? t.textAccent : "text-amber-500"}/>}
+                      {group.planName}
+                    </h2>
+                    {group.planLevel && (
+                      <p className={`text-[10px] font-black uppercase mt-1 px-2 py-0.5 inline-block rounded-md ${t.bgAccentSoft} ${t.textAccent}`}>
+                        Level: {group.planLevel === 'beginner' ? 'Pemula' : group.planLevel === 'intermediate' ? 'Menengah' : group.planLevel === 'advanced' ? 'Mahir' : group.planLevel}
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add URL input */}
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={warmupUrlInput}
-                onChange={(e) => setWarmupUrlInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddWarmupUrl()}
-                placeholder="https://youtu.be/..."
-                className={`flex-1 px-3 py-2.5 rounded-xl body-md ${t.inputBg} ${t.textMain} outline-none placeholder:${t.textMuted} focus:ring-2 ${t.ringAccent} transition-all`}
-              />
-              <button
-                onClick={handleAddWarmupUrl}
-                disabled={!warmupUrlInput.trim()}
-                className={`px-4 py-2.5 rounded-xl body-md font-black transition-all active:scale-95
-                  ${warmupUrlInput.trim()
-                    ? `${t.bgAccent} text-white shadow-md hover:opacity-90`
-                    : `${t.inputBg} ${t.textMuted} opacity-50 cursor-not-allowed`
-                  }`}
-              >
-                {lang.add || 'Tambah'}
-              </button>
-            </div>
-          </div>
-
-          {/* --- 2d: EXERCISE LIST --- */}
-          <div className={`p-5 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Dumbbell size={18} className={t.textAccent} />
-                <h3 className={`font-black body-lg ${t.textMain}`}>
-                  {lang.exerciseList || 'Daftar Latihan'}{' '}
-                  <span className={`${t.textAccent}`}>({activeProgram.exercises.length} {lang.exerciseCount || 'latihan'})</span>
-                </h3>
-              </div>
-            </div>
-
-            {/* Exercise cards */}
-            {activeProgram.exercises.length === 0 ? (
-              /* Empty state */
-              <div className={`flex flex-col items-center justify-center py-10 rounded-2xl border-2 border-dashed ${t.border}`}>
-                <div className={`p-4 rounded-2xl ${t.bgAccentSoft} mb-4`}>
-                  <Dumbbell size={32} className={t.textAccent} />
+                  {planId !== 'custom' && (
+                    <button 
+                      onClick={() => handleDeletePlan(planId, group.planName)}
+                      className={`p-2 rounded-full hover:bg-rose-500/10 text-rose-500 transition-colors`}
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
                 </div>
-                <p className={`body-lg ${t.textMuted} mb-1`}>
-                  {lang.emptyExercise || 'Belum ada latihan'}
-                </p>
-                <p className={`body-md ${t.textMuted} mb-5`}>
-                  {lang.emptyExerciseHint || 'Tambah dari database!'}
-                </p>
-                <button
-                  onClick={handleAddExercise}
-                  className={`flex items-center px-5 py-2.5 rounded-xl text-white font-black body-md ${t.bgAccent} shadow-lg hover:opacity-90 transition-all active:scale-95`}
+
+                <button 
+                  onClick={() => { 
+                    playSoundEffect('success', soundEnabled); 
+                    if (isActive) {
+                      setActivePlanId(null);
+                    } else {
+                      setActivePlanId(planId); 
+                    }
+                  }}
+                  className={`w-full py-3 rounded-xl font-black text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${isActive ? `${t.bgAccent} text-white shadow-md` : `${t.inputBg} ${t.textMuted} hover:${t.textMain}`}`}
                 >
-                  <Plus size={16} className="mr-1.5" /> {lang.addExercise || 'Tambah Latihan'}
+                  {isActive ? <><CheckCircle2 size={18} /> Program Aktif</> : 'Jadikan Aktif'}
                 </button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {activeProgram.exercises.map((ex, idx) => {
-                  const isTime = ex.type === 'time';
-                  const isReordering = reorderingId === ex.id;
 
-                  return (
-                    <div
-                      key={ex.id}
-                      className={`relative p-3.5 rounded-xl border ${t.border} transition-all duration-300
-                        ${isReordering ? 'scale-[1.02] shadow-lg ring-2 ' + t.ringAccent : 'hover:shadow-md'}
-                        bg-gradient-to-r from-transparent to-transparent hover:${t.bgAccentSoft}
-                      `}
-                      style={{ backgroundColor: isReordering ? undefined : 'rgba(128,128,128,0.03)' }}
-                    >
-                      {/* Top row: handle, index, name, arrows, delete */}
-                      <div className="flex items-center gap-2 mb-3">
-                        {/* Grip handle */}
-                        <GripVertical size={16} className={`${t.textMuted} flex-shrink-0 opacity-40`} />
-
-                        {/* Index badge */}
-                        <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-[10px] font-black ${t.bgAccent} text-white flex-shrink-0`}>
-                          {idx + 1}
-                        </span>
-
-                        {/* Name + meta */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            {/* GIF thumbnail */}
-                            {ex.gifUrl && (
-                              <img
-                                src={ex.gifUrl}
-                                alt=""
-                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-black/10"
-                              />
-                            )}
-                            <div className="min-w-0">
-                              <p className={`body-lg ${t.textMain} truncate flex items-center gap-1.5`}>
-                                {ex.name}
-                                {(ex.id > 1000000 && ex.source !== 'exercisedb') && <span className="px-1 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10 text-center uppercase">CUSTOM</span>}
-                              </p>
-                              <p className={`text-[10px] font-medium ${t.textAccent} truncate`}>
-                                {formatTarget(ex.target, lang?.id)}
-                              </p>
+              {/* ACCORDION CONTENT */}
+              <div className={`transition-all duration-300 ${isActive ? 'pb-5' : 'h-0 overflow-hidden'}`}>
+                <div className="flex flex-col">
+                  {group.routines.map((routine, idx) => {
+                    const isExpanded = expandedRoutineId === routine.id;
+                    const estDuration = Math.round(routine.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets) || 3), 0) * (45 + (parseInt(routine.restTime) || 90)) / 60);
+                    return (
+                      <div key={routine.id} className={`border-t ${t.border}`}>
+                        <button 
+                          onClick={() => { playSoundEffect('swipe', soundEnabled); setExpandedRoutineId(isExpanded ? null : routine.id); }}
+                          className={`w-full p-4 flex items-center justify-between transition-colors ${isExpanded ? t.bgCard : `hover:${t.inputBg}`}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isActive ? t.bgAccentSoft + ' ' + t.textAccent : t.inputBg + ' ' + t.textMuted}`}>
+                              {idx + 1}
+                            </span>
+                            <div className="text-left">
+                              <h4 className={`font-bold text-base ${t.textMain}`}>{routine.name}</h4>
+                              <p className={`text-xs ${t.textMuted}`}>{routine.exercises.length} Latihan • {routine.restTime}s Istirahat • ~{estDuration} mnt</p>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Reorder arrows */}
-                        <div className="flex flex-col gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => handleMoveExercise(idx, -1)}
-                            disabled={idx === 0}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              idx === 0 ? 'opacity-20 cursor-not-allowed' : `${t.textMuted} hover:${t.textAccent} hover:${t.bgAccentSoft} active:scale-90`
-                            }`}
-                          >
-                            <ArrowUp size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleMoveExercise(idx, 1)}
-                            disabled={idx === activeProgram.exercises.length - 1}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              idx === activeProgram.exercises.length - 1 ? 'opacity-20 cursor-not-allowed' : `${t.textMuted} hover:${t.textAccent} hover:${t.bgAccentSoft} active:scale-90`
-                            }`}
-                          >
-                            <ArrowDown size={14} />
-                          </button>
-                        </div>
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleRemoveExercise(ex.id)}
-                          className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors flex-shrink-0 active:scale-90"
-                        >
-                          <X size={16} />
+                          {isExpanded ? <ChevronUp size={20} className={t.textAccent} /> : <ChevronDown size={20} className={t.textMuted} />}
                         </button>
+                        
+                        {isExpanded && renderRoutineEditor(routine)}
                       </div>
+                    );
+                  })}
 
-                      {/* Bottom row: Equipment badge + Inline sets/reps */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Equipment badge */}
-                        {ex.equipment && (
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${getEquipmentColor(ex.equipment)}`}>
-                            {ex.equipment}
-                          </span>
-                        )}
-
-                        <div className="flex-1" />
-
-                        {/* Sets input */}
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-bold ${t.textMuted} uppercase`}>Sets</span>
-                          <input
-                            type="number"
-                            value={ex.sets === 0 ? '' : ex.sets}
-                            onChange={(e) => handleUpdateExercise(ex.id, 'sets', e.target.value)}
-                            placeholder="0"
-                            min="0"
-                            className={`w-12 px-1.5 py-1 rounded-lg ${t.inputBg} ${t.textMain} text-center font-black body-md outline-none focus:ring-1 ${t.ringAccent} transition-all`}
-                          />
-                        </div>
-
-                        {/* Reps or Duration input */}
-                        {isTime ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] font-bold ${t.textMuted} uppercase`}>Min</span>
-                            <input
-                              type="number"
-                              value={ex.duration === 0 ? '' : ex.duration}
-                              onChange={(e) => handleUpdateExercise(ex.id, 'duration', e.target.value)}
-                              placeholder="0"
-                              min="0"
-                              className={`w-12 px-1.5 py-1 rounded-lg ${t.inputBg} ${t.textMain} text-center font-black body-md outline-none focus:ring-1 ${t.ringAccent} transition-all`}
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] font-bold ${t.textMuted} uppercase`}>Reps</span>
-                            <input
-                              type="number"
-                              value={ex.reps === 0 ? '' : ex.reps}
-                              onChange={(e) => handleUpdateExercise(ex.id, 'reps', e.target.value)}
-                              placeholder="0"
-                              min="0"
-                              className={`w-12 px-1.5 py-1 rounded-lg ${t.inputBg} ${t.textMain} text-center font-black body-md outline-none focus:ring-1 ${t.ringAccent} transition-all`}
-                            />
-                          </div>
-                        )}
-                      </div>
+                  {/* Add Custom Routine Button (only for custom plan) */}
+                  {planId === 'custom' && (
+                    <div className={`p-4 border-t ${t.border}`}>
+                      <button 
+                        onClick={() => handleCreateRoutine('custom')}
+                        className={`w-full py-3 rounded-xl font-bold text-sm border-2 border-dashed ${t.borderAccentSoft} ${t.textAccent} hover:${t.bgAccentSoft} transition-all active:scale-95 flex items-center justify-center gap-2`}
+                      >
+                        <Plus size={16} /> Rutinitas Baru
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              </div>  
+            </div>
+          );
+        })}
+      </div>
 
-            {/* --- 2e: ADD EXERCISE BUTTON --- */}
-            {activeProgram.exercises.length > 0 && (
-              <button
-                onClick={handleAddExercise}
-                className={`w-full mt-4 py-4 border-2 border-dashed ${t.borderAccentSoft} hover:${t.borderAccent} hover:${t.bgAccentSoft} rounded-xl ${t.textAccent} font-black body-lg flex justify-center items-center transition-all duration-200 active:scale-[0.98]`}
-              >
-                <Plus size={16} className="mr-1.5" />
-                {lang.addToProgram || 'Tambah Latihan ke'} {activeProgram.name}
-              </button>
-            )}
-          </div>
-
-        </div>
-      )}
     </div>
   );
 };

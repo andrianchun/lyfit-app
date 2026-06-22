@@ -43,7 +43,7 @@ const LibManagerModal = ({ showLibManager, setShowLibManager, t, exerciseLibrary
           const normalizedTarget = Array.isArray(ex.target) ? ex.target.map(normalizeMuscleKey) : [normalizeMuscleKey(ex.target || 'Lainnya')];
           setEditForm({ ...ex, target: normalizedTarget });
       } else {
-          setEditForm({ id: null, name: '', target: ['Dada Atas'], type: 'weight', equipment: 'Dumbbell', ytVideo: '', defaultWeight: 0 });
+          setEditForm({ id: null, name: '', target: ['Dada Atas'], type: 'weight', equipment: 'Lainnya', ytVideo: '', defaultWeight: 0 });
       }
       setViewMode('form');
   };

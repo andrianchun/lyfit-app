@@ -8,6 +8,7 @@ import ExerciseDetailModal from '../components/ExerciseDetailModal';
 import UnifiedExerciseCard from '../components/UnifiedExerciseCard';
 import FilterChips from '../components/FilterChips';
 import SwipeInput from '../components/SwipeInput';
+import GymManagerModal from '../components/GymManagerModal';
 
 // ─── Blank exercise template ───────────────────────────────────────
 const blankExercise = () => ({
@@ -16,7 +17,7 @@ const blankExercise = () => ({
   target: [],
   instructions: [],
   type: 'weight',
-  equipment: 'Dumbbell',
+  equipment: 'Lainnya',
   defaultWeight: 0,
   ytVideo: '',
   gifUrl: '',
@@ -69,20 +70,27 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
       </div>
 
       {/* Target Muscles */}
-      <div>
+      <div className="w-full overflow-hidden">
         <label className={`body-md ${t.textMuted} mb-2 block`}>{lang?.targetMuscles || 'Target Otot'}</label>
-        <div className="flex flex-wrap gap-1.5">
-          {muscleOptions.map(m => (
-            <button
-              key={m}
-              onClick={() => toggleMuscle(m)}
-              className={`px-3 py-1.5 rounded-xl body-md transition-all ${
-                formData.target.includes(m) ? `${t.bgAccent} text-white` : `border border-dashed ${t.border} ${t.textMuted}`
-              }`}
-            >
-              {formatTarget(m, lang?.id)}
-            </button>
-          ))}
+        <div 
+          className="relative -mx-6"
+          style={{ WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent 100%)', maskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent 100%)' }}
+        >
+          <div className="flex flex-col flex-wrap content-start gap-2 overflow-x-auto hide-scrollbar h-[96px] pb-2 px-6">
+            {muscleOptions.map(m => (
+              <button
+                key={m}
+                onClick={() => toggleMuscle(m)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl body-md transition-all ${
+                  formData.target.includes(m) ? `${t.bgAccent} text-white font-bold` : `border border-dashed ${t.border} ${t.textMuted} hover:bg-white/5`
+                }`}
+              >
+                {formatTarget(m, lang?.id)}
+              </button>
+            ))}
+            {/* Spacer for proper right margin */}
+            <div className="w-4 h-full pointer-events-none shrink-0"></div>
+          </div>
         </div>
       </div>
       </div> {/* Akhir Kolom Kiri */}
@@ -90,8 +98,8 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
       {/* Kolom Kanan */}
       <div className="space-y-5">
       {/* Equipment + Type Row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
+      <div className="grid grid-cols-2 gap-3 items-end">
+        <div className="w-full">
           <label className={`body-md ${t.textMuted} mb-1 block`}>{lang?.equipment || 'Equipment'}</label>
           <div className="relative">
             <select
@@ -122,10 +130,10 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
       </div>
 
       {/* Default Weight + YouTube Row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
+      <div className="grid grid-cols-2 gap-3 items-end">
+        <div className="w-full">
           <label className={`body-md ${t.textMuted} mb-1 block`}>{lang?.defaultWeight || 'Beban Default (kg)'}</label>
-          <SwipeInput
+          <SwipeInput language={lang?.id || 'ID'}
             value={formData.defaultWeight || 0}
             onChange={(val) => setFormData(prev => ({ ...prev, defaultWeight: val }))}
             min={0}
@@ -134,7 +142,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
             className={`w-full px-3 py-3 rounded-xl ${t.inputBg} ${t.textMain} body-lg outline-none focus:ring-2 ${t.ringAccent} placeholder:opacity-30 dark:placeholder:opacity-40`}
           />
         </div>
-        <div>
+        <div className="w-full">
           <label className={`body-md ${t.textMuted} mb-1 block flex items-center`}>
             <LinkIcon size={12} className="mr-1" /> YouTube URL
           </label>
@@ -187,7 +195,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, onSave, onCancel, isEdit
 // ═══════════════════════════════════════════════════════════════════
 // ─── Main Component: DatabaseTab ──────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════
-const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, soundEnabled, warmupVideos, setWarmupVideos, cooldownVideos, setCooldownVideos, onOpenDetail, setConfirmModal }) => {
+const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, soundEnabled, warmupVideos, setWarmupVideos, cooldownVideos, setCooldownVideos, onOpenDetail, setConfirmModal, theme, gymProfiles, setGymProfiles, activeGymId, setActiveGymId }) => {
   // ── Tab State ────────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState('all'); // 'all' | 'custom'
 
@@ -306,10 +314,19 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
     });
     return scores;
   }, [history]);
+  // ── Apply Gym Constraints First ──────────────────────────────────
+  const gymFilteredLibrary = useMemo(() => {
+    let list = [...combinedLibrary];
+    const activeGym = gymProfiles.find(g => g.id === activeGymId) || gymProfiles[0];
+    if (activeGym && activeGym.equipment !== 'all' && Array.isArray(activeGym.equipment)) {
+      list = list.filter(ex => activeGym.equipment.includes(ex.equipment));
+    }
+    return list;
+  }, [combinedLibrary, gymProfiles, activeGymId]);
 
   // ── Filter and Sort ──────────────────────────────────────────────
   const filteredList = useMemo(() => {
-    let list = [...combinedLibrary];
+    let list = [...gymFilteredLibrary];
 
     // Mode Filter (Custom Only)
     // ID custom biasanya hasil Date.now() yang > 1000000, ID default < 1000, source API='exercisedb'
@@ -342,10 +359,12 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
       });
     }
 
-    // Equipment filter
+    // Equipment filter (Manual Chips)
     if (equipFilter.length > 0) {
       list = list.filter(ex => equipFilter.includes(ex.equipment));
     }
+
+    // (Active Gym Equipment Filter moved to gymFilteredLibrary)
 
     // Sort
     if (sortOrder === 'popular') {
@@ -364,16 +383,16 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
     }
 
     return list;
-  }, [combinedLibrary, viewMode, showFavoritesOnly, searchQuery, muscleFilter, equipFilter, sortOrder, popularityScores]);
+  }, [gymFilteredLibrary, viewMode, showFavoritesOnly, searchQuery, muscleFilter, equipFilter, sortOrder, popularityScores]);
 
   // Pagination for performance (Render top 100 max)
   const displayedList = filteredList.slice(0, 100);
 
   // Dynamic Equip Options for Filter Panel
   const allEquipOptions = useMemo(() => {
-    const set = new Set(combinedLibrary.map(ex => ex.equipment).filter(Boolean));
+    const set = new Set(gymFilteredLibrary.map(ex => ex.equipment).filter(Boolean));
     return [...set].sort();
-  }, [combinedLibrary]);
+  }, [gymFilteredLibrary]);
 
   // ── Handlers ─────────────────────────────────────────────────────
   const handleToggleFavorite = (ex) => {
@@ -477,6 +496,9 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
     });
   };
 
+    const [showGymManager, setShowGymManager] = useState(false);
+    const [showGymSelector, setShowGymSelector] = useState(false);
+
   // ═══════════════════════════════════════════════════════════════
   // ─── RENDER ─────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════
@@ -485,6 +507,52 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
       <div className={`animate-in fade-in duration-300 flex-1 flex flex-col min-h-0`}>
         
         <div className={`flex-shrink-0 z-10 ${t.bg} pt-4 pb-3 -mx-4 px-4 space-y-4 border-b ${t.border}`}>
+        
+        {/* ── Gym Selector ───────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <div 
+              onClick={() => setShowGymSelector(!showGymSelector)}
+              className={`w-full flex items-center bg-transparent border ${t.border} rounded-2xl px-3 py-2.5 cursor-pointer`}
+            >
+              <Dumbbell className={`${t.textAccent} mr-2`} size={18} />
+              <div className={`flex-1 ${t.text} body-sm font-semibold truncate`}>
+                {gymProfiles.find(g => g.id === activeGymId)?.name || 'Pilih Gym'}
+              </div>
+              <ChevronDown className={`${t.textMuted} transition-transform ${showGymSelector ? 'rotate-180' : ''}`} size={16} />
+            </div>
+
+            {/* Dropdown Menu */}
+            {showGymSelector && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowGymSelector(false)}></div>
+                <div className={`absolute top-full left-0 right-0 mt-2 z-50 ${t.bgCard} border ${t.border} rounded-2xl shadow-xl overflow-hidden py-2 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2`}>
+                  {gymProfiles.map(g => (
+                    <div 
+                      key={g.id} 
+                      onClick={() => {
+                        setActiveGymId(g.id);
+                        setShowGymSelector(false);
+                        playSoundEffect('click', soundEnabled);
+                      }}
+                      className={`px-4 py-3 cursor-pointer flex items-center justify-between hover:${t.bgAccentSoft} transition-colors ${activeGymId === g.id ? `${t.bgAccentSoft}` : ''}`}
+                    >
+                      <span className={`font-semibold ${activeGymId === g.id ? t.textAccent : t.text}`}>{g.name}</span>
+                      {activeGymId === g.id && <Check size={16} className={t.textAccent} />}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <button 
+            onClick={() => setShowGymManager(true)}
+            className={`p-2.5 rounded-2xl border ${t.border} ${t.btnBg} hover:opacity-80 transition-opacity`}
+          >
+            <Edit2 size={18} className={t.textAccent} />
+          </button>
+        </div>
+
         {/* ── Tab Switcher (All vs Custom) ───────────────────────── */}
         <div className={`relative flex w-full p-1.5 rounded-full ${t.btnBg}`}>
             <div className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-full transition-transform duration-300 ease-out ${t.bgAccent} shadow-sm`} style={{ transform: viewMode === 'all' ? 'translateX(0)' : 'translateX(100%)', left: '6px' }}></div>
@@ -499,7 +567,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
                 <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${
                   viewMode === 'all' ? 'bg-white/20' : `${t.bgCard}`
                 }`}>
-                  {combinedLibrary.length}
+                  {gymFilteredLibrary.length}
                 </span>
             </button>
             <button
@@ -512,7 +580,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
                 <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${
                   viewMode === 'custom' ? 'bg-white/20' : `${t.bgCard}`
                 }`}>
-                  {combinedLibrary.filter(ex => ex.id > 1000000 && ex.source !== 'exercisedb').length}
+                  {gymFilteredLibrary.filter(ex => ex.id > 1000000 && ex.source !== 'exercisedb').length}
                 </span>
             </button>
         </div>
@@ -724,7 +792,11 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
       </div>
 
       {/* Add / Edit Form Modal */}
-      {(isAdding || editingId !== null) && (
+      {isAdding && (
+        <ExerciseForm t={t} lang={lang} formData={formData} setFormData={setFormData} onSave={handleSave} onCancel={handleCancel} isEditing={false} />
+      )}
+
+      {editingId !== null && (
         <ExerciseForm
           t={t}
           lang={lang}
@@ -732,9 +804,23 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
           setFormData={setFormData}
           onSave={handleSave}
           onCancel={handleCancel}
-          isEditing={editingId !== null}
+          isEditing={true}
         />
       )}
+
+      {showGymManager && (
+        <GymManagerModal language={lang?.id || 'ID'} 
+          gymProfiles={gymProfiles} 
+          setGymProfiles={setGymProfiles} 
+          activeGymId={activeGymId} 
+          setActiveGymId={setActiveGymId} 
+          onClose={() => setShowGymManager(false)} 
+          t={t} 
+          soundEnabled={soundEnabled}
+          setConfirmModal={setConfirmModal}
+        />
+      )}
+
     </>
   );
 };

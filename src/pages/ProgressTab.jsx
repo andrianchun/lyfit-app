@@ -15,6 +15,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
   const chartDataObj = useMemo(() => {
     const isMusc = chartType === 'muscle';
     const itemsSet = new Set();
+    const itemFreq = {};
     const dataPoints = []; // Menggunakan Array datar agar titiknya berurutan sesuai set
 
     const exLookup = {};
@@ -94,6 +95,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
                                   const mKey = normalizeMuscleKey(muscle);
                                   itemsSet.add(mKey); 
                                   point[mKey] = (point[mKey] || 0) + volume; 
+                                  itemFreq[mKey] = (itemFreq[mKey] || 0) + 1;
                               });
                           }
                       } else {
@@ -105,6 +107,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
                           if (val > 0) {
                               itemsSet.add(exName);
                               point[exName] = Math.max((point[exName] || 0), val); 
+                              itemFreq[exName] = (itemFreq[exName] || 0) + 1;
                           }
                       }
                   }
@@ -177,7 +180,8 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
         }
     }
 
-    return { data: finalDataPoints, items: Array.from(itemsSet), recentItems: Array.from(recentItems) };
+    const sortedItems = Array.from(itemsSet).sort((a,b) => (itemFreq[b] || 0) - (itemFreq[a] || 0));
+    return { data: finalDataPoints, items: sortedItems, recentItems: Array.from(recentItems) };
   }, [chartType, language, history, programs, exerciseLibrary, selectedDate, unitSystem]);
 
   const scrollRef = useRef(null);
@@ -432,17 +436,27 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
           </div>
         </div>
 
-        <div className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-2 hide-scrollbar snap-x auto-cols-max" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div key={chartType} className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-2 hide-scrollbar auto-cols-max" style={{ WebkitOverflowScrolling: 'touch' }}>
           {chartDataObj.items.length === 0 && <span className={`body-md ${t.textMuted} italic`}>Belum ada data.</span>}
-          {chartDataObj.items.map((item, idx) => {
-             const isActive = activeChartLines.includes(item); 
-             const color = chartColors[idx % chartColors.length];
-             return (
-               <button key={item} onClick={() => toggleChartLine(item)} className="px-3 py-1.5 rounded-full caption font-black transition-all border active:scale-95 whitespace-nowrap snap-start flex items-center justify-center h-8" style={{ backgroundColor: isActive ? color : 'transparent', borderColor: color, color: isActive ? '#fff' : color, opacity: isActive ? 1 : 0.5 }}>
-                 {chartType === 'muscle' ? formatTarget(item, lang?.id) : item}
-               </button>
-             )
-          })}
+          {(() => {
+             const activeItems = [];
+             const inactiveItems = [];
+             chartDataObj.items.forEach((item, idx) => {
+                 const isActive = activeChartLines.includes(item);
+                 const element = { item, idx, isActive };
+                 if (isActive) activeItems.push(element);
+                 else inactiveItems.push(element);
+             });
+             
+             return [...activeItems, ...inactiveItems].map(({ item, idx, isActive }) => {
+                 const color = chartColors[idx % chartColors.length];
+                 return (
+                   <button key={item} onClick={() => toggleChartLine(item)} className="px-3 py-1.5 rounded-full caption font-black transition-all border active:scale-95 whitespace-nowrap flex items-center justify-center h-8" style={{ backgroundColor: isActive ? color : 'transparent', borderColor: color, color: isActive ? '#fff' : color, opacity: isActive ? 1 : 0.5 }}>
+                     {chartType === 'muscle' ? formatTarget(item, lang?.id) : item}
+                   </button>
+                 )
+             });
+          })()}
         </div>
         
     </div>

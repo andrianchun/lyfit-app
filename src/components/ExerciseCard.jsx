@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { SkipForward, Video, CheckCircle, Play, Square, Info, ArrowLeftRight, X, Dumbbell } from 'lucide-react';
 import EquipmentIcon from './EquipmentIcon';
 import SwipeInput from './SwipeInput';
-import { formatTarget } from '../data/constants';
+import { formatTarget, exerciseTypeLabels } from '../data/constants';
 import { playSoundEffect } from '../utils/audio';
 
 const ExerciseCard = ({
   ex, idx, isExtra = false,
   t, lang, soundEnabled, unitSystem,
   isSkip, onToggleSkip, onRemoveExtra, onOpenVideo, onReplaceClick,
-  sets, onUpdateSet, onToggleSet, onAddSet, onRemoveSet
+  sets, onUpdateSet, onToggleSet, onAddSet, onRemoveSet,
+  gymProfiles, activeGymId
 }) => {
   const isImp = unitSystem === 'imperial';
   const exType = ex.type || 'weight';
@@ -80,11 +81,20 @@ const ExerciseCard = ({
                  <div className="min-w-0">
                      <h3 className={`h2 truncate pr-2 flex items-center gap-1.5 flex-wrap ${isSkip ? 'opacity-50' : t.textMain}`}>
                         {ex.name}
-                        {isCustom && <span className="px-1 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10 text-center uppercase">CUSTOM</span>}
+                        {isCustom && <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded text-[8px] font-black uppercase tracking-wider shadow-sm">CUSTOM</span>}
                      </h3>
-                     <p className={`caption uppercase tracking-wider opacity-60 truncate mt-1 ${t.textMuted}`}>
-                        {formatTarget(ex.target, lang?.id)}   {ex.equipment || 'Lainnya'}
-                     </p>
+                     <div className="flex flex-col gap-1.5 mt-1">
+                        <div className="flex gap-1.5 flex-wrap items-center">
+                           <span className={`text-[10px] font-black uppercase tracking-wider ${t.textAccent}`}>{ex.equipment || 'Lainnya'}</span>
+                           <span className={`text-[10px] font-bold ${t.textMuted}`}>•</span>
+                           <span className={`text-[10px] font-bold uppercase tracking-wider ${t.textMuted}`}>{exerciseTypeLabels[exType] || exType}</span>
+                        </div>
+                        <div className="flex gap-1 flex-wrap items-center -ml-1.5">{Array.isArray(ex.target) ? ex.target.map(m => (
+                            <span key={m} className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${t.inputBg} ${t.textMuted} border ${t.border}`}>{formatTarget(m, lang?.id)}</span>
+                          )) : ex.target && (
+                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${t.inputBg} ${t.textMuted} border ${t.border}`}>{formatTarget(ex.target, lang?.id)}</span>
+                          )}</div>
+                     </div>
                      {isSkip && (
                         <div className="mt-1.5 inline-block px-2 py-0.5 bg-rose-500/20 text-rose-500 border border-rose-500/30 rounded text-xs font-black tracking-wider uppercase shadow-sm">
                           SKIPPED
@@ -165,7 +175,31 @@ const ExerciseCard = ({
                 ) : (
                   <>
                     {exType === 'weight' && (
-                      <div><SwipeInput value={isImp ? Math.round(Number(s.w || 0) * 2.20462 * 10)/10 : s.w} onChange={(val)=>onUpdateSet(ex.id, setIdx, 'w', isImp ? Number((val / 2.20462).toFixed(2)) : val)} disabled={s.done} step={isImp ? 5 : 2.5} soundEnabled={soundEnabled} className={`w-full ${t.inputBg} h-8 rounded text-center font-black ${t.textMain} no-spinners transition-colors body-lg`} /></div>
+                      <div>
+                        {(() => {
+                          let customStep = isImp ? 5 : 2.5;
+                          let customMin = 0;
+                          if (gymProfiles && activeGymId) {
+                            const activeGym = gymProfiles.find(g => g.id === activeGymId) || gymProfiles[0];
+                            if (activeGym && ex.equipment && activeGym.config && activeGym.config[ex.equipment]) {
+                              const conf = activeGym.config[ex.equipment];
+                              if (conf.increment) customStep = conf.increment;
+                              if (conf.barWeight) customMin = conf.barWeight;
+                            }
+                          }
+                          return (
+                            <SwipeInput language={lang?.id || 'ID'} 
+                              value={isImp ? Math.round(Number(s.w || 0) * 2.20462 * 10)/10 : s.w} 
+                              onChange={(val)=>onUpdateSet(ex.id, setIdx, 'w', isImp ? Number((val / 2.20462).toFixed(2)) : val)} 
+                              disabled={s.done} 
+                              step={customStep} 
+                              min={customMin}
+                              soundEnabled={soundEnabled} 
+                              className={`w-full ${t.inputBg} h-8 rounded text-center font-black ${t.textMain} no-spinners transition-colors body-lg`} 
+                            />
+                          );
+                        })()}
+                      </div>
                     )}
                     
                     {/* KHUSUS TIMER DURASI */}
@@ -176,7 +210,7 @@ const ExerciseCard = ({
                                {formatTime(activeTimer.timeLeft)}
                             </div>
                          ) : (
-                            <SwipeInput value={s.d} onChange={(val)=>onUpdateSet(ex.id, setIdx, 'd', val)} disabled={s.done} step={1} soundEnabled={soundEnabled} className={`w-full ${t.inputBg} h-8 rounded text-center font-black ${t.textMain} no-spinners transition-colors body-lg`} />
+                            <SwipeInput language={lang?.id || 'ID'} value={s.d} onChange={(val)=>onUpdateSet(ex.id, setIdx, 'd', val)} disabled={s.done} step={1} soundEnabled={soundEnabled} className={`w-full ${t.inputBg} h-8 rounded text-center font-black ${t.textMain} no-spinners transition-colors body-lg`} />
                          )}
                          {!s.done && (
                            <button onClick={() => toggleTimer(setIdx, s.d)} className={`h-8 w-8 shrink-0 rounded flex items-center justify-center text-white transition-all ${activeTimer.idx === setIdx ? 'bg-rose-500' : 'bg-emerald-500 hover:opacity-80'}`}>
@@ -187,7 +221,7 @@ const ExerciseCard = ({
                     )}
 
                     {(exType === 'weight' || exType === 'reps') && (
-                      <div><SwipeInput value={s.r} onChange={(val)=>onUpdateSet(ex.id, setIdx, 'r', val)} disabled={s.done} step={1} soundEnabled={soundEnabled} className={`w-full ${t.inputBg} h-8 rounded text-center font-black ${t.textMain} no-spinners transition-colors body-lg`} /></div>
+                      <div><SwipeInput language={lang?.id || 'ID'} value={s.r} onChange={(val)=>onUpdateSet(ex.id, setIdx, 'r', val)} disabled={s.done} step={1} soundEnabled={soundEnabled} className={`w-full ${t.inputBg} h-8 rounded text-center font-black ${t.textMain} no-spinners transition-colors body-lg`} /></div>
                     )}
                   </>
                 )}

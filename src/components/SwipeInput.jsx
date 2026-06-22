@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { playSoundEffect } from '../utils/audio';
+import { formatNumber, parseFormattedNumber } from '../utils/numberFormat';
 
-const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, soundEnabled, placeholder }) => {
+const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, soundEnabled, placeholder, language = 'ID' }) => {
     const inputRef = useRef(null);
     const dragRef = useRef({ isDragging: false, startY: 0, startVal: 0, lastCalculatedValue: undefined });
     const [isFocused, setIsFocused] = useState(false);
@@ -29,8 +30,8 @@ const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, s
         e.stopPropagation(); // Mencegah global swipe
         
         let sVal = Number(localValue);
-        if ((localValue === '' || localValue === null || localValue === undefined) && placeholder) {
-            sVal = Number(placeholder.toString().replace(/[^\d.-]/g, '')) || 0;
+        if (isNaN(sVal) || localValue === '' || localValue === null || localValue === undefined) {
+            sVal = placeholder ? (Number(placeholder.toString().replace(/[^\d.-]/g, '')) || 0) : 0;
         }
         
         // lastCalculatedValue di-reset ke undefined agar sekadar nge-tap tidak otomatis mengisi angka placeholder
@@ -43,8 +44,14 @@ const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, s
         
         const diffY = dragRef.current.startY - e.touches[0].clientY;
         const steps = Math.round(diffY / 15); 
-        let newValue = dragRef.current.startVal + (steps * step);
-        newValue = Math.max(min, Number(newValue.toFixed(2))); 
+        
+        // Ensure step and startVal are valid numbers
+        const validStep = isNaN(Number(step)) ? 1 : Number(step);
+        const validStartVal = isNaN(dragRef.current.startVal) ? 0 : dragRef.current.startVal;
+        
+        let newValue = validStartVal + (steps * validStep);
+        const validMin = isNaN(Number(min)) ? 0 : Number(min);
+        newValue = Math.max(validMin, Number(newValue.toFixed(2))); 
         
         if (newValue !== Number(localValue)) {
             dragRef.current.lastCalculatedValue = newValue;
@@ -65,10 +72,55 @@ const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, s
 
     const handleManualChange = (e) => {
         let val = e.target.value;
-        val = val.replace(/^0+(?=\d)/, '');
-        if (val === '') val = '0';
-        setLocalValue(val);
-        onChange(val);
+        val = val.replace(/^0+(?=\d)/, ''); // Remove leading zeros before digits
+        
+        if (isFocused) {
+            // Parse to raw string (standard JS float format: 10000.5)
+            const parsed = parseFormattedNumber(val, language);
+            if (parsed === '') {
+                setLocalValue('');
+                onChange('');
+                return;
+            }
+            
+            // Allow typing trailing decimals like "10."
+            // However, we need to know if the user just typed a localized decimal separator at the end
+            const decSep = language === 'ID' ? ',' : '.';
+            let toStore = parsed;
+            
+            // If the user typed a comma/dot at the end, append a dot to the raw parsed value so we know
+            if (val.endsWith(decSep) && !parsed.includes('.')) {
+                toStore = parsed + '.';
+            }
+            
+            setLocalValue(toStore);
+            
+            const numVal = parseFloat(parsed);
+            if (!isNaN(numVal)) onChange(numVal);
+        }
+    };
+
+    const getDisplayValue = () => {
+        if (localValue === null || localValue === undefined || localValue === '') return '';
+        
+        if (!isFocused) return formatNumber(localValue, language);
+        
+        // When focused, we still want thousands separators, but must preserve exact decimal typing
+        const rawStr = localValue.toString();
+        const parts = rawStr.split('.');
+        const integerPart = parts[0];
+        const fractionalPart = parts.length > 1 ? parts[1] : undefined;
+        
+        const decSep = language === 'ID' ? ',' : '.';
+        const formattedInteger = formatNumber(integerPart, language);
+        
+        if (fractionalPart !== undefined) {
+            return `${formattedInteger}${decSep}${fractionalPart}`;
+        } else if (rawStr.endsWith('.')) {
+            return `${formattedInteger}${decSep}`;
+        }
+        
+        return formattedInteger;
     };
 
     useEffect(() => {
@@ -85,14 +137,24 @@ const SwipeInput = ({ value, onChange, disabled, step = 1, className, min = 0, s
         <div className="relative w-full h-full flex items-center">
             <input
                 ref={inputRef}
-                type="number"
+                type="text"
+                inputMode="decimal"
                 style={{ touchAction: 'none' }}
-                value={(localValue ?? '').toString().replace(/^0+(?=\d)/, '')} 
+                value={getDisplayValue()} 
                 onChange={handleManualChange}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
+                onBlur={() => {
+                    setIsFocused(false);
+                    // On blur, clean up formatting/parsing and sync back
+                    const parsed = parseFormattedNumber(localValue, language);
+                    const finalVal = parsed === '' ? '' : parseFloat(parsed);
+                    if (finalVal !== '') {
+                        setLocalValue(finalVal);
+                        onChange(finalVal);
+                    }
+                }}
                 disabled={disabled}
-                placeholder={placeholder}
+                placeholder={formatNumber(placeholder, language)}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}

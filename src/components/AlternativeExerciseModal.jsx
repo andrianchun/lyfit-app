@@ -14,7 +14,9 @@ const AlternativeExerciseModal = ({
   onSelectAlternative,
   t, 
   lang,
-  soundEnabled
+  soundEnabled,
+  gymProfiles,
+  activeGymId
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -31,8 +33,18 @@ const AlternativeExerciseModal = ({
   const combinedLibrary = useMemo(() => {
     const localNames = new Set(exerciseLibrary.map(ex => ex.name.toLowerCase()));
     const onlineToAdd = onlineExercises.filter(ex => !localNames.has(ex.name.toLowerCase()));
-    return [...exerciseLibrary, ...onlineToAdd];
-  }, [exerciseLibrary, onlineExercises]);
+    let list = [...exerciseLibrary, ...onlineToAdd];
+
+    // Filter by Active Gym Equipment
+    if (gymProfiles && activeGymId) {
+      const activeGym = gymProfiles.find(g => g.id === activeGymId) || gymProfiles[0];
+      if (activeGym && activeGym.equipment !== 'all' && Array.isArray(activeGym.equipment)) {
+        list = list.filter(ex => activeGym.equipment.includes(ex.equipment));
+      }
+    }
+
+    return list;
+  }, [exerciseLibrary, onlineExercises, gymProfiles, activeGymId]);
 
   const toggleFilter = (arr, setArr, val) => {
     setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
@@ -238,7 +250,9 @@ const AlternativeExerciseModal = ({
               <p className="body-lg font-bold">Tidak ada latihan yang ditemukan.</p>
             </div>
           ) : (
-            alternatives.map(ex => (
+            alternatives.map(ex => {
+              const isCustom = ex.id > 1000000 && ex.source !== 'exercisedb';
+              return (
               <div 
                 key={ex.id}
                 onClick={() => {
@@ -249,37 +263,42 @@ const AlternativeExerciseModal = ({
                 className={`p-3 rounded-2xl border ${t.border} ${t.bgCard} flex items-center justify-between gap-3 hover:${t.borderAccentSoft} cursor-pointer transition-all active:scale-95`}
               >
                 {/* Thumbnail */}
-                <div className="w-12 h-12 rounded-xl bg-black/5 flex-shrink-0 flex items-center justify-center overflow-hidden border border-black/5 relative">
-                   {(() => {
-                      const ytId = getVideoId(ex.ytVideo);
-                      if (ex.gifUrl) {
-                         return <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover opacity-80" />;
-                      } else if (ytId) {
-                         return <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt={ex.name} className="w-full h-full object-cover opacity-80" />;
-                      } else {
-                         return <EquipmentIcon equipment={ex.equipment} size={20} className={t.textMuted} />;
-                      }
-                   })()}
-                   {/* Recommendation Badge */}
-                   {ex.score >= 50 && (
-                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white dark:border-[#0f172a]"></div>
-                   )}
+                <div className="relative inline-block flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center overflow-hidden border border-black/5 relative">
+                     {(() => {
+                        const ytId = getVideoId(ex.ytVideo);
+                        if (ex.gifUrl) {
+                           return <img src={ex.gifUrl} alt={ex.name} className="w-full h-full object-cover opacity-80" />;
+                        } else if (ytId) {
+                           return <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt={ex.name} className="w-full h-full object-cover opacity-80" />;
+                        } else {
+                           return <EquipmentIcon equipment={ex.equipment} size={20} className={t.textMuted} />;
+                        }
+                     })()}
+                     {isCustom && <div className="absolute bottom-0 inset-x-0 bg-slate-900/90 backdrop-blur text-emerald-400 text-[6.5px] font-black uppercase tracking-widest text-center py-0.5 leading-none">CUSTOM</div>}
+                  </div>
+                  {/* Recommendation Badge */}
+                  {ex.score >= 50 && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white dark:border-[#0f172a] z-10"></div>
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h4 className={`font-black body-lg ${t.textMain} truncate flex items-center gap-1`}>
+                  <h4 className={`font-black body-lg ${t.textMain} truncate flex items-center gap-1.5 flex-wrap`}>
                     {ex.name}
-                    {ex.source === 'exercisedb' && <span className={`px-1 py-0.5 rounded text-[8px] ${t.bgAccentSoft} ${t.textAccent} uppercase tracking-wider`}>Online</span>}
                   </h4>
-                  <div className="flex gap-1 mt-1 flex-wrap items-center">
-                    {ex.score >= 50 && <span className="text-[9px] font-black text-amber-500 uppercase tracking-wider mr-1">Disarankan</span>}
-                    {ex.target?.map(m => (
-                      <span key={m} className={`px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800/50 text-slate-300 border border-slate-700/50`}>{formatTarget(m, lang?.id)}</span>
-                    ))}
+                  <div className="flex flex-col gap-1 mt-1">
+                    <div className="flex gap-1.5 flex-wrap items-center">
+                       {ex.score >= 50 && <span className="text-[9px] font-black text-amber-500 uppercase tracking-wider mr-1">Disarankan</span>}
+                       <span className={`text-[10px] font-black uppercase tracking-wider ${t.textAccent}`}>{ex.equipment || 'Lainnya'}</span>
+                    </div>
+                    <div className="flex gap-1 flex-wrap items-center -ml-1.5">{ex.target?.map(m => (
+                        <span key={m} className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${t.inputBg} ${t.textMuted} border ${t.border}`}>{formatTarget(m, lang?.id)}</span>
+                      ))}</div>
                   </div>
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
 

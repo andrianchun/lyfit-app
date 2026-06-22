@@ -25,6 +25,7 @@ const WorkoutTab = ({
   onToggleSkip, onRemoveExtra,
   isCurrentlyCompleted, onSaveWorkout, onCancelWorkout,
   onAddExtraClick, onAddExtraExercise,
+  gymProfiles, activeGymId,
   
   // Global Timer Props
   isWorkoutActive, setIsWorkoutActive,
@@ -39,7 +40,7 @@ const WorkoutTab = ({
   restTimer, setRestTimer,
   sessionToRun, setSessionToRun,
   resumeDurationSecs, setResumeDurationSecs,
-  unitSystem
+  unitSystem, activePlanId
 }) => {
   
   const [detailExercise, setDetailExercise] = useState(null);
@@ -47,8 +48,51 @@ const WorkoutTab = ({
   const [showProgramSelect, setShowProgramSelect] = useState(false);
   const [expandedSessions, setExpandedSessions] = useState({});
 
-  const dayData = history ? history[selectedDate] : null;
-  const activeProgramsList = (dayData?.workouts || [])
+  const DAY_MAP = { 0: 'Min', 1: 'Sen', 2: 'Sel', 3: 'Rab', 4: 'Kam', 5: 'Jum', 6: 'Sab' };
+  const getLocalYMD = (d) => {
+    const offset = d.getTimezoneOffset();
+    return new Date(d.getTime() - (offset*60*1000)).toISOString().split('T')[0];
+  };
+
+  const todayStr = getLocalYMD(new Date());
+
+  let sourceWorkouts = (history[selectedDate]?.workouts || []).filter(w => {
+    const p = programs.find(prog => prog.id === w.programId);
+    const wPlanId = (p ? p.planId : null) || 'custom';
+    
+    if (w.programId !== 'adhoc') {
+      if (activePlanId === 'custom') {
+        if (wPlanId !== 'custom') return false;
+      } else {
+        if (wPlanId !== activePlanId) return false;
+      }
+    }
+    return true;
+  });
+  
+  if (sourceWorkouts.length === 0) {
+    if (selectedDate >= todayStr && activePlanId && activePlanId !== 'custom') {
+      const planRoutines = programs.filter(p => p.planId === activePlanId);
+      if (planRoutines.length > 0) {
+        const dateObj = new Date(selectedDate);
+        const dayName = DAY_MAP[dateObj.getDay()];
+        
+        const projectedRoutines = planRoutines.filter(r => r.assignedDays && r.assignedDays.includes(dayName));
+        if (projectedRoutines.length > 0) {
+          sourceWorkouts = projectedRoutines.map(pr => ({
+            id: `projected_${pr.id}_${selectedDate}`,
+            programId: pr.id,
+            programName: pr.name,
+            status: 'planned',
+            isProjected: true,
+            log: {}
+          }));
+        }
+      }
+    }
+  }
+
+  const activeProgramsList = sourceWorkouts
     .map(w => {
       if (w.programId === 'adhoc') {
          return { id: 'adhoc', name: w.programName || 'Sesi Ekstra', exercises: w.exercises || [], workoutId: w.id, status: w.status, log: w.log };
@@ -73,7 +117,12 @@ const WorkoutTab = ({
 
   React.useEffect(() => {
     if (focusWorkoutId) {
-      setExpandedSessions({ [focusWorkoutId]: true });
+      let targetWorkoutId = focusWorkoutId;
+      if (focusWorkoutId !== 'extra') {
+         const found = activeProgramsList.find(p => p.id === focusWorkoutId || p.workoutId === focusWorkoutId);
+         if (found) targetWorkoutId = found.workoutId;
+      }
+      setExpandedSessions({ [targetWorkoutId]: true });
       setFocusWorkoutId(null);
     } else if (activeProgramsList.length > 0 && Object.keys(expandedSessions).length === 0 && !hasAutoExpanded.current) {
       setExpandedSessions({ [activeProgramsList[0].workoutId]: true });
@@ -117,7 +166,15 @@ const WorkoutTab = ({
          } catch (err) {}
      }
 
-     setDetailExercise({ ...(fullEx || {}), ...ex });
+     let mergedEx = { ...(fullEx || {}), ...ex };
+     if (fullEx) {
+         if (!mergedEx.instructions || mergedEx.instructions.length === 0) mergedEx.instructions = fullEx.instructions;
+         if (!mergedEx.ytVideo) mergedEx.ytVideo = fullEx.ytVideo;
+         if (!mergedEx.gifUrl) mergedEx.gifUrl = fullEx.gifUrl;
+         if (!mergedEx.equipment) mergedEx.equipment = fullEx.equipment;
+     }
+
+     setDetailExercise(mergedEx);
   };
 
   const handleSelectAlternative = (newEx) => {
@@ -260,6 +317,8 @@ const WorkoutTab = ({
           onCancelWorkout={() => {
             onCancelWorkout(sessionToRun);
           }}
+          gymProfiles={gymProfiles}
+          activeGymId={activeGymId}
           soundEnabled={soundEnabled}
           onOpenDetail={handleOpenDetail}
           workoutStartTime={workoutStartTime}
@@ -286,6 +345,7 @@ const WorkoutTab = ({
         exerciseLibrary={exerciseLibrary}
         onSelectAlternative={handleSelectAlternative}
         t={t} lang={lang} soundEnabled={soundEnabled}
+        gymProfiles={gymProfiles} activeGymId={activeGymId}
       />
 
       <div className={`space-y-4 animate-in fade-in pb-8 ${isImmersiveMode ? 'hidden' : ''}`}>
@@ -301,6 +361,7 @@ const WorkoutTab = ({
             handleAddAdhocSession={handleAddAdhocSession}
             programs={programs}
             handleAddProgramToToday={handleAddProgramToToday}
+            activePlanId={activePlanId}
           />
         ) : (
           <>
@@ -320,13 +381,13 @@ const WorkoutTab = ({
                   <div key={prog.workoutId} className={`mb-4 rounded-2xl border ${prog.status === 'completed' ? 'border-emerald-500/30' : t.border} bg-black/5 dark:bg-white/5 overflow-hidden transition-all`}>
                     <button 
                       onClick={() => { playSoundEffect('click', soundEnabled); toggleSession(prog.workoutId); }}
-                      className={`w-full p-4 flex items-center justify-between font-black text-left ${isExpanded ? t.bgAccentSoft + ' ' + t.textAccent : ''} transition-colors`}
+                      className={`w-full p-4 flex items-start justify-between font-black text-left ${isExpanded ? t.bgAccentSoft + ' ' + t.textAccent : ''} transition-colors`}
                     >
-                      <div className="flex items-center gap-2">
-                        {isProgramCompleted(prog) && <CheckCircle size={16} className="text-emerald-500" />}
-                        <span className="body-lg uppercase tracking-widest">Sesi {pIdx + 1}: {prog.name}</span>
+                      <div className="flex items-start gap-2 flex-1 min-w-0 pr-4">
+                        {isProgramCompleted(prog) && <CheckCircle size={16} className="text-emerald-500 shrink-0 mt-0.5" />}
+                        <span className="body-lg uppercase tracking-widest break-words leading-tight">Sesi {pIdx + 1}: {prog.name}</span>
                       </div>
-                      <div className="flex items-center gap-1 caption opacity-60 font-bold"><span>{prog.exercises?.length || 0} Latihan</span>{isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</div>
+                      <div className="flex items-center gap-1 caption opacity-60 font-bold shrink-0 mt-0.5"><span>{prog.exercises?.length || 0} Latihan</span>{isExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</div>
                     </button>
                     
                     {isExpanded && (

@@ -3,7 +3,7 @@ import { X, Dumbbell, History, Calculator, Replace, Video, Info, ChevronLeft, Ch
 import { formatTarget } from '../data/constants';
 
 const ExerciseDetailModal = ({ 
-  ex, 
+  ex: initialEx, 
   onClose, 
   t, 
   lang, 
@@ -19,11 +19,36 @@ const ExerciseDetailModal = ({
   // Epley formula: 1RM = weight * (1 + reps/30)
   const oneRM = calcReps > 1 ? Math.round(calcWeight * (1 + calcReps / 30)) : calcWeight;
 
+  const [ex, setEx] = useState(initialEx);
+
+  React.useEffect(() => {
+     setEx(initialEx);
+     if (initialEx && (!initialEx.instructions || initialEx.instructions.length === 0)) {
+         import('../utils/exerciseDbApi').then(({ fetchExercisesFromApi }) => {
+             fetchExercisesFromApi().then(onlineDb => {
+                 const locName = initialEx.name.toLowerCase();
+                 // Pemasangan yang lebih fleksibel: exact, locName ada di dbName, atau dbName ada di locName
+                 const onlineMatch = onlineDb.find(e => {
+                     const dbName = e.name.toLowerCase();
+                     return dbName === locName || dbName.includes(locName) || locName.includes(dbName);
+                 });
+                 if (onlineMatch && onlineMatch.instructions) {
+                     setEx(prev => ({ 
+                         ...prev, 
+                         instructions: onlineMatch.instructions,
+                         equipment: prev.equipment || onlineMatch.equipment
+                     }));
+                 }
+             });
+         }).catch(() => {});
+     }
+  }, [initialEx]);
+
   if (!ex) return null;
 
   const parseMedia = (exercise) => {
     let items = [];
-    if (exercise.ytVideo) {
+    if (exercise.ytVideo && typeof exercise.ytVideo === 'string') {
       const urls = exercise.ytVideo.split(/(?:,|\s)+/).filter(v => v.trim());
       urls.forEach(u => items.push({ type: 'youtube', url: u }));
     }
@@ -124,10 +149,10 @@ const ExerciseDetailModal = ({
 
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in`} onClick={onClose}>
-      <div className={`w-full max-w-md sm:max-w-4xl mx-auto ${t.bgCard} rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col sm:flex-row h-[85vh] sm:h-[80vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
+      <div className={`w-full max-w-md sm:max-w-4xl mx-auto ${t.bgCard} rounded-3xl overflow-hidden flex flex-col sm:flex-row h-[85vh] sm:h-[80vh] animate-in zoom-in-95 duration-200 border ${t.border}`} onClick={e => e.stopPropagation()}>
         
         {/* Kolom Kiri: Header with Video/Image */}
-        <div className="w-full sm:w-[45%] flex flex-col relative shrink-0 bg-black aspect-square sm:aspect-auto">
+        <div className="w-full sm:w-[45%] flex flex-col relative shrink-0 bg-black h-[45%] sm:h-auto">
           <div 
             className="relative w-full h-full overflow-hidden group touch-pan-y"
             onTouchStart={onTouchStart}
@@ -147,7 +172,7 @@ const ExerciseDetailModal = ({
                 </div>
               ) : (
                 mediaItems.map((media, idx) => (
-                  <div key={idx} className="h-full flex items-center justify-center shrink-0 overflow-hidden" style={{ width: `${100 / mediaItems.length}%` }}>
+                  <div key={idx} className="relative h-full flex items-center justify-center shrink-0 overflow-hidden" style={{ width: `${100 / mediaItems.length}%` }}>
                     {(() => {
                       if (media.type === 'youtube') {
                         const match = media.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
@@ -160,8 +185,7 @@ const ExerciseDetailModal = ({
                                 title="YouTube video player" 
                                 frameBorder="0" 
                                 onLoad={handleIframeLoad}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                className={`exercise-video-iframe w-[140%] h-[140%] max-w-none pointer-events-none scale-[1.15] transition-opacity duration-700 ${isVideoReady || idx !== activeMediaIndex ? 'opacity-100' : 'opacity-0'}`}
+                                className={`exercise-video-iframe absolute w-[150%] h-[150%] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-none pointer-events-none transition-opacity duration-700 ${isVideoReady || idx !== activeMediaIndex ? 'opacity-100' : 'opacity-0'}`}
                               ></iframe>
                               {!isVideoReady && idx === activeMediaIndex && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
@@ -173,9 +197,41 @@ const ExerciseDetailModal = ({
                         }
                       }
                       if (media.type === 'video') {
-                        return <video src={media.url} autoPlay={idx === activeMediaIndex} loop muted playsInline className="w-full h-full object-contain opacity-80 pointer-events-none" />;
+                        return <video src={media.url} autoPlay={idx === activeMediaIndex} loop muted playsInline className="w-full h-full object-cover opacity-80 pointer-events-none scale-[1.10]" />;
                       }
-                      return <img src={media.url} alt={ex.name} className="w-full h-full object-contain opacity-80 pointer-events-none" />;
+                      
+                      // Animated Image Component for ExerciseDB frames
+                      const AnimatedImage = () => {
+                        const [frame, setFrame] = React.useState(0);
+                        React.useEffect(() => {
+                           if (!media.url.includes('yuhonas/free-exercise-db') || idx !== activeMediaIndex) return;
+                           const interval = setInterval(() => {
+                               setFrame(f => f === 0 ? 1 : 0);
+                           }, 800);
+                           return () => clearInterval(interval);
+                        }, [media.url, idx, activeMediaIndex]);
+                        
+                        const currentUrl = (media.url.includes('yuhonas/free-exercise-db') && media.url.endsWith('0.jpg'))
+                            ? media.url.replace('0.jpg', `${frame}.jpg`)
+                            : media.url;
+                            
+                        // Preload second frame
+                        React.useEffect(() => {
+                            if (media.url.includes('yuhonas/free-exercise-db') && media.url.endsWith('0.jpg')) {
+                                const img = new Image();
+                                img.src = media.url.replace('0.jpg', '1.jpg');
+                            }
+                        }, [media.url]);
+
+                        return (
+                          <div className="relative w-full h-full flex items-center justify-center">
+                            <img src={currentUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-2xl scale-125 pointer-events-none" />
+                            <img src={currentUrl} alt={ex.name} className="relative z-10 w-full h-full object-contain pb-6 pointer-events-none drop-shadow-2xl" />
+                          </div>
+                        );
+                      };
+                      
+                      return <AnimatedImage />;
                     })()}
                   </div>
                 ))
@@ -200,6 +256,9 @@ const ExerciseDetailModal = ({
               </div>
             )}
             
+            {/* Top gradient for obscuring iframe remnants and better button visibility */}
+            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10 pointer-events-none"></div>
+
             <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm transition-all sm:hidden z-20">
               <X size={20} />
             </button>
@@ -229,7 +288,7 @@ const ExerciseDetailModal = ({
         </div>
 
         {/* Kolom Kanan: Action Tabs & Tab Content */}
-        <div className="w-full sm:w-[55%] flex flex-col bg-black/5 dark:bg-black/20 overflow-hidden h-full relative">
+        <div className="w-full sm:w-[55%] flex flex-col bg-transparent overflow-hidden h-full relative">
           {/* Desktop Close Button */}
           <button onClick={onClose} className="hidden sm:flex absolute top-3 right-3 bg-black/5 hover:bg-rose-500 hover:text-white dark:bg-white/5 dark:hover:bg-rose-500 text-slate-500 dark:text-slate-300 p-2 rounded-full transition-all z-20">
             <X size={20} />
@@ -259,7 +318,7 @@ const ExerciseDetailModal = ({
           </div>
         )}
 
-          <div className="overflow-hidden flex-1 bg-black/5 dark:bg-black/20 relative">
+          <div className="overflow-hidden flex-1 relative">
             {ex.type !== 'warmup' && ex.type !== 'cooldown' ? (
               <div 
                 className="flex h-full w-[300%] transition-transform duration-300 ease-in-out touch-pan-y"

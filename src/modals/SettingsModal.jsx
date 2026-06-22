@@ -93,7 +93,7 @@ export default function SettingsModal({
                 <span className="font-bold">Rest Default</span>
               </div>
               <div className="flex items-center justify-end gap-2 pr-1 shrink-0">
-                <SwipeInput
+                <SwipeInput language={language}
                     value={defaultRestTime}
                     onChange={(val) => setDefaultRestTime(val)}
                     soundEnabled={soundEnabled}

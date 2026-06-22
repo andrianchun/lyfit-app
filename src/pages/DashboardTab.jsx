@@ -1,12 +1,14 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, Zap, Brain, Footprints, HeartPulse, Moon, Droplets, Droplet, Dumbbell, Scale, RefreshCw, Trophy, Link2, Pencil, Info, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Activity, Zap, Brain, Footprints, HeartPulse, Moon, Droplets, Droplet, Dumbbell, Scale, RefreshCw, Trophy, Link2, Pencil, Settings, Info, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { getLocalYMD } from '../data/constants';
 import { HealthConnect } from 'capacitor-health-connect';
 import DashboardModals from '../components/DashboardModals';
 import DashboardChart from '../components/DashboardChart';
 import ProgressTab from './ProgressTab';
 import { MuscleProgress } from '../components/MuscleProgress';
+import SwipeInput from '../components/SwipeInput';
+import { formatNumber } from '../utils/numberFormat';
 
 const MetricBox = ({ label, value, unit, icon, color, t, theme }) => (
     <div className={`p-4 rounded-2xl flex flex-col justify-between ${theme === 'dark' ? 'bg-[#0f172a]' : 'bg-slate-50'} border ${t.border}`}>
@@ -30,9 +32,9 @@ const MiniBox = ({ label, value, unit, t, theme }) => (
     </div>
 );
 
-const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, exerciseLibrary, navigateToWorkoutDate, soundEnabled, playSoundEffect, theme, selectedDate, biometricStandard, unitSystem, setConfirmModal }) => {
+const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, exerciseLibrary, navigateToWorkoutDate, soundEnabled, playSoundEffect, theme, selectedDate, biometricStandard, unitSystem, setConfirmModal, activityTargets, setActivityTargets, gymProfiles, activeGymId }) => {
   const todayStr = getLocalYMD(new Date());
-  const activeDate = selectedDate || todayStr;
+  const activeDate = todayStr; // Selalu tampilkan hari ini, terlepas dari kalender latihan
 
   // ==========================================
   // STATE KONEKSI & SINKRONISASI
@@ -49,11 +51,32 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
   // STATE MODAL INPUT MANUAL & TANGGAL
   // ==========================================
   const [showManualModal, setShowManualModal] = useState(false);
-  const [manualTab, setManualTab] = useState('komposisi'); 
+  const [manualTab, setManualTab] = useState('komposisi');
   const [modalDate, setModalDate] = useState(activeDate);
+  const [isProgressExpanded, setIsProgressExpanded] = useState(false);
+  
+  // TARGET SETTINGS
+  const [showTargetModal, setShowTargetModal] = useState(false);
+  const [targetForm, setTargetForm] = useState(activityTargets || { steps: 10000, weeklyDuration: 150, sleep: 8 });
 
+  useEffect(() => {
+     if (activityTargets) {
+        setTargetForm(activityTargets);
+     }
+  }, [activityTargets]);
+
+  const handleSaveTargets = () => {
+     playSoundEffect('click', soundEnabled);
+     setActivityTargets(targetForm);
+     setShowTargetModal(false);
+  };
+
+  const parseSleepHours = (str) => {
+      const parts = (str || '').match(/(\d+)h\s*(\d+)m/);
+      if (parts) return parseInt(parts[1]) + (parseInt(parts[2]) / 60);
+      return 0;
+  };
   const [isKomposisiExpanded, setIsKomposisiExpanded] = useState(true);
-  const [isProgressExpanded, setIsProgressExpanded] = useState(true);
 
   const emptyBio = {
     bodyScore: 0, weight: 0, height: 0, bmi: 0, bmiStatus: '-', bodyFat: 0, bodyFatStatus: '-',
@@ -270,8 +293,13 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
       <div className="pt-2 flex justify-between items-center mb-2">
          <div>
             <h1 className={`h1 ${t.textMain}`}>Halo, {user?.name?.split(' ')[0] || 'Kawan'} 👋</h1>
-            <div className="flex items-center space-x-1.5 mt-1">
+            <div className="flex items-center space-x-2 mt-1">
                <p className={`body-md ${t.textMuted}`}>{new Date().toLocaleDateString(lang.workout === 'Latihan' ? 'id-ID' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+               <span className={`text-[10px] ${t.textMuted}`}>•</span>
+               <div className={`flex items-center gap-1 ${t.textMuted}`}>
+                 <Dumbbell size={12} />
+                 <span className="body-md font-bold text-[13px]">{gymProfiles?.find(g => g.id === activeGymId)?.name || 'Lyfit Gym'}</span>
+               </div>
             </div>
          </div>
          
@@ -309,21 +337,21 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
            
            <div className="flex items-center space-x-6 mb-5 relative z-10">
                <div className={`w-20 h-20 shrink-0 rounded-full flex flex-col items-center justify-center border-[3px] ${scoreStyle} shadow-sm`}>
-                  <span className="h1">{bioData.bodyScore || '-'}</span>
+                  <span className="h1">{formatNumber(bioData.bodyScore, language) || '-'}</span>
                   <span className="h3 mt-1 opacity-70">SCORE</span>
                </div>
                <div className="flex-1 space-y-3">
                    <div className="flex justify-between items-center border-b border-dashed border-slate-500/20 pb-2">
                        <span className={`caption ${t.textMuted}`}>BMI ({biometricStandard === 'western' ? 'Western' : 'Asia'})</span>
                        <div className="text-right flex items-center space-x-1.5">
-                          <span className={`h2 ${t.textMain}`}>{bioData.bmi || '-'}</span>
+                          <span className={`h2 ${t.textMain}`}>{formatNumber(bioData.bmi, language) || '-'}</span>
                           <span className={`h3 ${bioData.bmiStatus === 'Normal' ? 'text-emerald-500' : bioData.bmiStatus === 'Overweight' ? 'text-amber-500' : bioData.bmiStatus === 'Obese' ? 'text-rose-500' : 'text-blue-500'}`}>{bioData.bmiStatus}</span>
                        </div>
                    </div>
                    <div className="flex justify-between items-center pb-1">
                        <span className={`caption ${t.textMuted}`}>Body Fat</span>
                        <div className="text-right flex items-center space-x-1.5">
-                          <span className={`h2 ${t.textMain}`}>{bioData.bodyFat || '-'} <span className="caption font-normal text-zinc-500">%</span></span>
+                          <span className={`h2 ${t.textMain}`}>{formatNumber(bioData.bodyFat, language) || '-'} <span className="caption font-normal text-zinc-500">%</span></span>
                           <span className={`h3 ${bioData.bodyFatStatus === 'Normal' ? 'text-emerald-500' : bioData.bodyFatStatus === 'Overfat' ? 'text-amber-500' : bioData.bodyFatStatus === 'Obese' ? 'text-rose-500' : 'text-blue-500'}`}>{bioData.bodyFatStatus}</span>
                        </div>
                    </div>
@@ -331,14 +359,14 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
            </div>
   
            <div className="grid grid-cols-4 gap-2 relative z-10 pt-4 border-t border-dashed border-slate-500/20">
-               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{bioData.bmr || '-'}</span><span className={`h3 ${t.textMuted} mt-0.5`}>BMR</span></div>
+               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{formatNumber(bioData.bmr, language) || '-'}</span><span className={`h3 ${t.textMuted} mt-0.5`}>BMR</span></div>
                <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{dispMainMuscle} <span className="caption font-normal text-zinc-500">{isImp ? 'lbs' : 'kg'}</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Massa Otot</span></div>
-               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{bioData.musclePercent || '-'} <span className="caption font-normal text-zinc-500">%</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Kadar Otot</span></div>
-               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{bioData.visceralFat || '-'}</span><span className={`h3 ${t.textMuted} mt-0.5`}>Visceral</span></div>
-               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{bioData.waterPercent || '-'} <span className="caption font-normal text-zinc-500">%</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Kadar Air</span></div>
-               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{bioData.proteinPercent || '-'} <span className="caption font-normal text-zinc-500">%</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Protein</span></div>
+               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{formatNumber(bioData.musclePercent, language) || '-'} <span className="caption font-normal text-zinc-500">%</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Kadar Otot</span></div>
+               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{formatNumber(bioData.visceralFat, language) || '-'}</span><span className={`h3 ${t.textMuted} mt-0.5`}>Visceral</span></div>
+               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{formatNumber(bioData.waterPercent, language) || '-'} <span className="caption font-normal text-zinc-500">%</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Kadar Air</span></div>
+               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{formatNumber(bioData.proteinPercent, language) || '-'} <span className="caption font-normal text-zinc-500">%</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Protein</span></div>
                <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{dispMainWaist} <span className="caption font-normal text-zinc-500">{isImp ? 'in' : 'cm'}</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>L. Perut</span></div>
-               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{bioData.bodyAge || '-'} <span className="caption font-normal text-zinc-500">th</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Usia Tubuh</span></div>
+               <div className="p-2 rounded-xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center text-center"><span className={`body-lg font-black ${t.textMain}`}>{formatNumber(bioData.bodyAge, language) || '-'} <span className="caption font-normal text-zinc-500">th</span></span><span className={`h3 ${t.textMuted} mt-0.5`}>Usia Tubuh</span></div>
            </div>
            
            <button 
@@ -366,30 +394,44 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
       <div className={`p-5 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm`}>
          <div className="flex justify-between items-center mb-4">
              <h3 className={`h3 ${t.textMain}`}>Aktivitas Harian</h3>
-             <button onClick={() => { playSoundEffect('click', soundEnabled); setModalDate(activeDate); setManualTab('harian'); setShowManualModal(true); }} className={`p-1.5 rounded-full ${t.btnBg} ${t.textMuted} hover:${t.textMain} border ${t.border}`}><Pencil size={14}/></button>
+             <div className="flex space-x-2">
+                 <button onClick={() => { playSoundEffect('click', soundEnabled); setShowTargetModal(true); }} className={`p-1.5 rounded-full ${t.btnBg} ${t.textMuted} hover:${t.textMain} border ${t.border}`}><Settings size={14}/></button>
+                 <button onClick={() => { playSoundEffect('click', soundEnabled); setModalDate(activeDate); setManualTab('harian'); setShowManualModal(true); }} className={`p-1.5 rounded-full ${t.btnBg} ${t.textMuted} hover:${t.textMain} border ${t.border}`}><Pencil size={14}/></button>
+             </div>
          </div>
 
          <div className="flex flex-col space-y-4 mb-4">
              {/* Row 1: Langkah Kaki & Detak Jantung */}
              <div className="flex justify-between items-center border-b border-dashed border-slate-500/20 pb-3">
-                 <div className="flex flex-col">
+                 <div className="flex flex-col w-[45%]">
                      <div className="flex items-center space-x-1.5 mb-1 text-emerald-500"><Footprints size={14}/> <span className={`caption ${t.textMuted} capitalize`}>Langkah Kaki</span></div>
-                     <span className={`h1 ${t.textMain}`}>{bioData.steps || '-'}</span>
-                     <span className="caption text-zinc-500 mt-0.5">{bioData.activeMinutes || '0'} Menit Aktif • {bioData.activityCalories || '0'} kcal</span>
+                     <div className="flex items-baseline space-x-1">
+                         <span className={`h1 ${t.textMain}`}>{formatNumber(bioData.steps, language) || '0'}</span>
+                         <span className="caption text-zinc-500 font-bold">/ {formatNumber(activityTargets?.steps || 10000, language)}</span>
+                     </div>
+                     <div className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-full my-1.5 overflow-hidden">
+                         <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (Number(bioData.steps || 0) / (activityTargets?.steps || 10000)) * 100)}%` }}></div>
+                     </div>
+                     <span className="caption text-zinc-500">{formatNumber(bioData.activeMinutes, language) || '0'} Menit Aktif • {formatNumber(bioData.activityCalories, language) || '0'} kcal</span>
                  </div>
                  <div className="flex flex-col text-right items-end">
                      <div className="flex items-center space-x-1.5 mb-1 text-rose-500"><span className={`caption ${t.textMuted} capitalize`}>Detak Jantung</span> <HeartPulse size={14}/></div>
-                     <span className={`h1 ${t.textMain}`}>{bioData.heartRate || '-'} <span className="caption font-normal text-zinc-500">bpm</span></span>
-                     <span className="caption text-zinc-500 mt-0.5">Min {bioData.minHeartRate || '-'} • Max {bioData.maxHeartRate || '-'}</span>
+                     <span className={`h1 ${t.textMain}`}>{formatNumber(bioData.heartRate, language) || '-'} <span className="caption font-normal text-zinc-500">bpm</span></span>
+                     <span className="caption text-zinc-500 mt-0.5">Min {formatNumber(bioData.minHeartRate, language) || '-'} • Max {formatNumber(bioData.maxHeartRate, language) || '-'}</span>
                  </div>
              </div>
              
              {/* Row 2: Tidur & Tekanan Darah */}
              <div className="flex justify-between items-center border-b border-dashed border-slate-500/20 pb-3">
-                 <div className="flex flex-col">
+                 <div className="flex flex-col w-[45%]">
                      <div className="flex items-center space-x-1.5 mb-1 text-indigo-400"><Moon size={14}/> <span className={`caption ${t.textMuted} capitalize`}>Tidur & Energi</span></div>
-                     <span className={`h1 ${t.textMain}`}>{bioData.sleep || '-'}</span>
-                     <span className="caption text-zinc-500 mt-0.5">Score: <span className="text-amber-500">{bioData.energyScore || '-'}</span> / 100</span>
+                     <div className="flex items-baseline space-x-1">
+                         <span className={`h1 ${t.textMain}`}>{bioData.sleep || '0h 0m'}</span>
+                     </div>
+                     <div className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-full my-1.5 overflow-hidden">
+                         <div className="h-full bg-indigo-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (parseSleepHours(bioData.sleep) / (activityTargets?.sleep || 8)) * 100)}%` }}></div>
+                     </div>
+                     <span className="caption text-zinc-500">Score: <span className="text-amber-500">{formatNumber(bioData.energyScore, language) || '-'}</span> / 100</span>
                  </div>
                  <div className="flex flex-col text-right items-end">
                      <div className="flex items-center space-x-1.5 mb-1 text-blue-400"><span className={`caption ${t.textMuted} capitalize`}>Tekanan Darah</span> <Activity size={14}/></div>
@@ -399,16 +441,34 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
              </div>
          </div>
 
-         <div className={`p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-dashed ${t.border} flex justify-between items-center`}>
-             <div className="flex items-center space-x-2">
-                 <Trophy size={16} className={t.textAccent}/>
-                 <div className="flex flex-col">
-                     <span className={`h3 ${t.textMain}`}>Total Olahraga Mingguan</span>
-                     <span className={`caption ${t.textMuted}`}>{bioData.weeklySessions || '0'} Sesi • {bioData.weeklyCalories || '0'} kcal</span>
+         {(() => {
+             const weeklyDur = Number(bioData.weeklyDuration || 0);
+             const targetDur = activityTargets?.weeklyDuration || 150;
+             const weeklyProgress = Math.min(100, (weeklyDur / targetDur) * 100);
+             const isGoalReached = weeklyDur >= targetDur;
+             
+             return (
+                 <div className={`relative p-4 rounded-2xl border ${isGoalReached ? t.borderAccent : t.border} overflow-hidden flex justify-between items-center shadow-sm`}>
+                     {/* Background progress bar */}
+                     <div className="absolute inset-0 bg-black/5 dark:bg-white/5"></div>
+                     <div className={`absolute top-0 bottom-0 left-0 ${t.bgAccent} transition-all duration-1000 opacity-15 dark:opacity-25`} style={{ width: `${weeklyProgress}%` }}></div>
+                     
+                     <div className="flex items-center space-x-3 relative z-10">
+                         <div className={`p-2 rounded-xl transition-colors duration-500 ${isGoalReached ? t.bgAccent : 'bg-black/10 dark:bg-white/10'}`}>
+                             <Trophy size={20} className={isGoalReached ? 'text-white dark:text-black' : t.textMuted} fill={isGoalReached ? 'currentColor' : 'none'}/>
+                         </div>
+                         <div className="flex flex-col">
+                             <span className={`body-lg font-black ${t.textMain}`}>Total Olahraga Mingguan</span>
+                             <span className={`caption ${t.textMuted}`}>{formatNumber(bioData.weeklySessions, language) || '0'} Sesi • {formatNumber(bioData.weeklyCalories, language) || '0'} kcal</span>
+                         </div>
+                     </div>
+                     <div className="flex items-baseline space-x-1 relative z-10">
+                         <span className={`h1 ${isGoalReached ? t.textAccent : t.textMain}`}>{formatNumber(weeklyDur, language) || '0'}</span>
+                         <span className="caption text-zinc-500 font-bold">/ {formatNumber(targetDur, language)}</span>
+                     </div>
                  </div>
-             </div>
-             <span className={`h2 ${t.textAccent}`}>{bioData.weeklyDuration || '-'} <span className="caption text-zinc-500">Mins</span></span>
-         </div>
+             );
+         })()}
       </div>
       </div>
 
@@ -573,6 +633,78 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
            </div>
         </div>
       ), document.body)}
+      {/* MODAL PENGATURAN TARGET */}
+      {showTargetModal && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowTargetModal(false)}>
+              <div className={`w-full max-w-sm ${t.bgCard} rounded-3xl p-5 border ${t.border} shadow-2xl animate-in zoom-in-95`} onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-5">
+                      <h3 className={`h3 ${t.textMain}`}>Pengaturan Target</h3>
+                  </div>
+                  
+                  <div className="space-y-4 mb-6">
+                      <div>
+                          <label className={`caption font-bold ${t.textMuted} mb-1 block uppercase tracking-wider`}>Target Langkah Kaki</label>
+                          <div className="relative">
+                              <SwipeInput 
+                                  value={targetForm.steps || ''} 
+                                  onChange={(v) => setTargetForm(p => ({...p, steps: v}))} 
+                                  min={0} max={50000} step={500} 
+                                  placeholder="10000"
+                                  language={language}
+                                  className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-4 rounded-xl outline-none font-black text-center text-xl pr-16`}
+                              />
+                              <span className={`absolute right-4 top-1/2 -translate-y-1/2 caption font-bold ${t.textMuted}`}>Langkah</span>
+                          </div>
+                      </div>
+                      <div>
+                          <label className={`caption font-bold ${t.textMuted} mb-1 block uppercase tracking-wider`}>Target Olahraga Mingguan</label>
+                          <div className="relative">
+                              <SwipeInput 
+                                  value={targetForm.weeklyDuration || ''} 
+                                  onChange={(v) => setTargetForm(p => ({...p, weeklyDuration: v}))} 
+                                  min={0} max={1000} step={10} 
+                                  placeholder="150"
+                                  language={language}
+                                  className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-4 rounded-xl outline-none font-black text-center text-xl pr-16`}
+                              />
+                              <span className={`absolute right-4 top-1/2 -translate-y-1/2 caption font-bold ${t.textMuted}`}>Menit</span>
+                          </div>
+                      </div>
+                      <div>
+                          <label className={`caption font-bold ${t.textMuted} mb-1 block uppercase tracking-wider`}>Target Tidur</label>
+                          <div className="relative">
+                              <SwipeInput 
+                                  value={targetForm.sleep || ''} 
+                                  onChange={(v) => setTargetForm(p => ({...p, sleep: v}))} 
+                                  min={0} max={24} step={1} 
+                                  placeholder="8"
+                                  language={language}
+                                  className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-4 rounded-xl outline-none font-black text-center text-xl pr-16`}
+                              />
+                              <span className={`absolute right-4 top-1/2 -translate-y-1/2 caption font-bold ${t.textMuted}`}>Jam</span>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="flex space-x-3 mt-6 border-t border-slate-500/20 pt-5">
+                      <button 
+                          onClick={() => { playSoundEffect('click', soundEnabled); setShowTargetModal(false); }}
+                          className={`w-1/3 py-3 rounded-xl font-bold body-lg ${t.textMuted} ${t.btnBg} active:scale-[0.98] transition-all`}
+                      >
+                          Batal
+                      </button>
+                      <button 
+                          onClick={handleSaveTargets}
+                          className={`flex-1 py-3 rounded-xl font-bold body-lg text-white ${t.bgAccent} shadow-lg active:scale-[0.98] transition-all`}
+                      >
+                          Simpan
+                      </button>
+                  </div>
+              </div>
+          </div>,
+          document.body
+      )}
+
     </div>
   );
 };

@@ -100,35 +100,8 @@ export const muscleNameMap = {
 // =============================================
 // MAPPING: Equipment (API → LyFit format)
 // =============================================
-export const equipmentMap = {
-  'barbell': 'Barbell',
-  'dumbbell': 'Dumbbell',
-  'cable': 'Cable/Machine',
-  'machine': 'Cable/Machine',
-  'leverage machine': 'Cable/Machine',
-  'smith machine': 'Smith Machine',
-  'body weight': 'Bodyweight',
-  'assisted': 'Cable/Machine',
-  'band': 'Lainnya',
-  'resistance band': 'Lainnya',
-  'stability ball': 'Lainnya',
-  'bosu ball': 'Lainnya',
-  'medicine ball': 'Lainnya',
-  'kettlebell': 'Lainnya',
-  'rope': 'Cable/Machine',
-  'ez barbell': 'Barbell',
-  'olympic barbell': 'Barbell',
-  'trap bar': 'Barbell',
-  'roller': 'Lainnya',
-  'wheel roller': 'Lainnya',
-  'sled machine': 'Cable/Machine',
-  'upper body ergometer': 'Cardio Machine',
-  'stationary bike': 'Cardio Machine',
-  'elliptical machine': 'Cardio Machine',
-  'stepmill machine': 'Cardio Machine',
-  'skierg machine': 'Cardio Machine',
-  'tire': 'Lainnya',
-  'weighted': 'Lainnya',
+const capitalizeWords = (str) => {
+  return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };
 
 /**
@@ -142,11 +115,14 @@ export const translateMuscle = (name) => {
 
 /**
  * Translate equipment name dari API ke format LyFit
+ * Karena kita sudah mendukung semua alat API, cukup di-Title Case.
  */
 export const translateEquipment = (name) => {
   if (!name) return 'Lainnya';
   const lower = name.toLowerCase().trim();
-  return equipmentMap[lower] || 'Lainnya';
+  if (lower === 'body weight') return 'Body Weight';
+  if (lower === 'ez barbell') return 'EZ Barbell';
+  return capitalizeWords(lower);
 };
 
 /**
@@ -219,12 +195,6 @@ export const mapToLyFitFormat = (apiEx) => {
   };
 };
 
-/**
- * Capitalize setiap kata
- */
-const capitalizeWords = (str) => {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-};
 
 /**
  * Ambil semua exercises dari database lokal (yang sudah didownload).

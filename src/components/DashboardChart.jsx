@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getLocalYMD } from '../data/constants';
+import { formatNumber } from '../utils/numberFormat';
 
-const DashboardChart = ({ t, theme, history, soundEnabled, playSoundEffect, onPointClick, unitSystem }) => {
+const DashboardChart = ({ t, theme, history, soundEnabled, playSoundEffect, onPointClick, unitSystem, language }) => {
   const isImp = unitSystem === 'imperial';
   const chartMetricsList = [
       { key: 'weight', label: 'Berat Badan', color: '#41759b' },
@@ -265,6 +266,23 @@ const DashboardChart = ({ t, theme, history, soundEnabled, playSoundEffect, onPo
                     }}
                  >
                     <CartesianGrid strokeDasharray="3 3" stroke={t.border} vertical={false} opacity={0.5} />
+                    <YAxis 
+                        yAxisId="left" 
+                        domain={['auto', 'auto']} 
+                        tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tickFormatter={(val) => formatNumber(val, language)}
+                    />
+                    <YAxis 
+                        yAxisId="right" 
+                        orientation="right" 
+                        domain={[0, 'auto']} 
+                        tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tickFormatter={(val) => formatNumber(val, language)}
+                    />
                     <Tooltip 
                        formatter={(value, name, props) => {
                            let unit = '';
@@ -274,7 +292,7 @@ const DashboardChart = ({ t, theme, history, soundEnabled, playSoundEffect, onPo
                            else if (props.dataKey === 'bmr') unit = ' kcal';
                            else if (props.dataKey === 'activeMinutes' || props.dataKey === 'weeklyDuration') unit = ' m';
                            else if (props.dataKey === 'heartRate') unit = ' bpm';
-                           return [`${value}${unit}`, name];
+                           return [`${formatNumber(value, language)}${unit}`, name];
                        }}
                        cursor={{ stroke: theme === 'dark' ? '#52525b' : '#d4d4d8', strokeWidth: 1, strokeDasharray: '3 3' }} 
                        contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderRadius: '12px', border: '1px solid ' + t.border, padding: '8px 12px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 

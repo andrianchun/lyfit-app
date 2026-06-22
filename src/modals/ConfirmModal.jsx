@@ -4,7 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 const ConfirmModal = ({ confirmModal, setConfirmModal, t, lang, soundEnabled, playSoundEffect }) => {
   if (!confirmModal.isOpen) return null;
 
-  const isDelete = confirmModal.title?.toLowerCase().includes('hapus') || confirmModal.message?.toLowerCase().includes('hapus') || confirmModal.message?.toLowerCase().includes('remove');
+  const isDelete = confirmModal.isDestructive || confirmModal.title?.toLowerCase().includes('hapus') || confirmModal.message?.toLowerCase().includes('hapus') || confirmModal.message?.toLowerCase().includes('remove') || confirmModal.title?.toLowerCase().includes('batal');
 
   return (
     <div className={`fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in ${t?.textMain} font-sans`} onClick={() => setConfirmModal({isOpen:false})}>

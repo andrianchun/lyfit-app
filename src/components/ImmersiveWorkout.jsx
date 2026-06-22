@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Play, Pause, ChevronRight, ChevronLeft, Dumbbell, Check, Info, Clock, Minimize2 } from 'lucide-react';
+import { X, Play, Pause, ChevronRight, ChevronLeft, Dumbbell, Check, Info, Clock, Minimize2, SkipForward } from 'lucide-react';
 import ScrollPicker from './ScrollPicker';
+import { exerciseTypeLabels } from '../data/constants';
 import { playSoundEffect } from '../utils/audio';
 
 const ImmersiveWorkout = ({
@@ -23,6 +24,8 @@ const ImmersiveWorkout = ({
   workoutStartTime,
   restTimer,
   setRestTimer,
+  gymProfiles,
+  activeGymId,
   setRestTargetTime
 }) => {
   // 1. Gather all active exercises
@@ -343,16 +346,16 @@ const ImmersiveWorkout = ({
                             frameBorder="0" 
                             onLoad={handleIframeLoad}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            className={`immersive-video-iframe w-[150%] h-[150%] max-w-none pointer-events-none scale-[1.35] sm:scale-125 transition-opacity duration-700 ${ytLoaded || idx !== activeMediaIndex ? 'opacity-100' : 'opacity-0'}`}
+                            className={`immersive-video-iframe w-[160%] h-[160%] max-w-none pointer-events-none scale-[1.4] sm:scale-[1.3] transition-opacity duration-700 ${ytLoaded || idx !== activeMediaIndex ? 'opacity-100' : 'opacity-0'}`}
                           ></iframe>
                         </>
                       );
                     }
                   }
                   if (media.type === 'video') {
-                    return <video src={media.url} autoPlay={idx === activeMediaIndex && !isPaused} loop muted playsInline className="immersive-video-html5 w-full h-full object-contain opacity-80 pointer-events-none" />;
+                    return <video src={media.url} autoPlay={idx === activeMediaIndex && !isPaused} loop muted playsInline className="immersive-video-html5 w-full h-full object-cover opacity-80 pointer-events-none scale-[1.10]" />;
                   }
-                  return <img src={media.url} alt={ex.name} className="w-full h-full object-contain opacity-80 pointer-events-none" />;
+                  return <img src={media.url} alt={ex.name} className="w-full h-full object-cover opacity-80 pointer-events-none scale-[1.10]" />;
                 })()}
               </div>
             ))
@@ -387,9 +390,15 @@ const ImmersiveWorkout = ({
         )}
         
         {/* Info Overlay */}
+        <div className="absolute top-6 left-5 z-20 flex flex-col items-start drop-shadow-md">
+           <span className="text-white text-xs font-black uppercase tracking-widest leading-none drop-shadow-md shadow-black">
+             {ex.equipment || 'Lainnya'}
+           </span>
+        </div>
+
         <button 
           onClick={() => onOpenDetail(ex)}
-          className="absolute top-4 right-4 ${t.bgCard} opacity-90 backdrop-blur-md p-2 rounded-xl ${t.textMuted} hover:${t.textMain} transition"
+          className="absolute top-4 right-4 bg-black/30 backdrop-blur-md p-2 rounded-xl text-white/80 hover:text-white transition shadow-lg z-20"
         >
           <Info size={24} />
         </button>
@@ -420,10 +429,11 @@ const ImmersiveWorkout = ({
             {logs.map((s, i) => (
               <div 
                 key={i} 
-                className={`h-2 rounded-full transition-all ${
-                  s.skipped ? `w-8 bg-rose-500` :
-                  s.done ? `w-8 ${t.bgAccent}` : 
-                  i === activeSetIdx ? `w-12 ${t.bgAccent}` : `w-4 ${theme === 'dark' ? 'bg-white/20' : 'bg-black/10'}`
+                style={{ flex: i === activeSetIdx ? 3 : (s.done || s.skipped ? 2 : 1) }}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  s.skipped ? `bg-rose-500` :
+                  s.done ? `bg-emerald-500` : 
+                  i === activeSetIdx ? `${t.bgAccent} shadow-[0_0_10px_rgba(255,255,255,0.3)]` : `${theme === 'dark' ? 'bg-white/20' : 'bg-black/10'}`
                 }`} 
               />
             ))}
@@ -431,10 +441,10 @@ const ImmersiveWorkout = ({
 
           <button 
             onClick={handleSkipSet}
-            className={`p-3 rounded-2xl ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'} transition flex items-center justify-center gap-1`}
+            className={`p-3 rounded-2xl ${theme === 'dark' ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400' : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500'} transition flex items-center justify-center gap-1`}
             title="Skip 1 Set"
           >
-            <ChevronRight size={24} />
+            <SkipForward size={24} />
           </button>
         </div>
 

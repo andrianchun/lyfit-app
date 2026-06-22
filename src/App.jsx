@@ -31,6 +31,7 @@ import ConfirmModal from './modals/ConfirmModal';
 import AddExerciseModal from './modals/AddExerciseModal';
 import SettingsModal from './modals/SettingsModal';
 import HelpModal from './modals/HelpModal';
+import ProgramQuestionnaireModal from './modals/ProgramQuestionnaireModal';
 
 // --- IMPORT DATA & MESIN ---
 import { playSoundEffect } from './utils/audio';
@@ -56,6 +57,9 @@ export default function App() {
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [biometricStandard, setBiometricStandard] = useState('asia'); // 'asia' | 'western'
   const [unitSystem, setUnitSystem] = useState('metric'); // 'metric' | 'imperial'
+  const [gymProfiles, setGymProfiles] = useState([{ id: 'default', name: 'Lyfit Gym', equipment: 'all', config: {} }]);
+  const [activeGymId, setActiveGymId] = useState('default');
+  const [activityTargets, setActivityTargets] = useState({ steps: 10000, weeklyDuration: 150, sleep: 8 });
 
   const [exerciseLibrary, setExerciseLibrary] = useState(defaultMasterExercises);
   const [programs, setPrograms] = useState(defaultPrograms);
@@ -75,11 +79,13 @@ export default function App() {
 
   const [selectedDate, setSelectedDate] = useState(getLocalYMD(new Date()));
   const [loadedDate, setLoadedDate] = useState(null);
+  const [activePlanId, setActivePlanId] = useState(null);
   const [activeProgramId, setActiveProgramId] = useState(defaultPrograms[0]?.id || null);
   const [focusWorkoutId, setFocusWorkoutId] = useState(null);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [globalDetailExercise, setGlobalDetailExercise] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
   const [activeAddModalTarget, setActiveAddModalTarget] = useState(null); 
@@ -136,6 +142,74 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // --- EFEK ONBOARDING AI ---
+  useEffect(() => {
+    if (isDataLoaded) {
+      const isFirstTime = localStorage.getItem('lyfit_onboarding_completed') !== 'true';
+      if (isFirstTime) {
+        setShowQuestionnaire(true);
+      }
+    }
+  }, [isDataLoaded]);
+
+  const handleApplyRecommendedPlan = (plan) => {
+    playSoundEffect('success', soundEnabled);
+    const newPlanId = `plan-${Date.now()}`;
+    const userExperience = plan.userExperience || 'beginner';
+
+    const newPrograms = plan.routines.map((routine, idx) => {
+      
+      // AI EXPERIENCE-BASED SWAPPING LOGIC
+      const adjustedExercises = routine.exercises.map(ex => {
+        const masterEx = defaultMasterExercises.find(m => m.id === (ex.originalId || ex.id));
+        
+        // If already matches user level or no master found, keep original
+        if (!masterEx || !masterEx.level || masterEx.level === userExperience) return ex;
+        
+        // Find an alternative that matches user level AND shares the primary muscle target
+        const primaryTarget = masterEx.target[0];
+        const altEx = defaultMasterExercises.find(m => 
+          m.level === userExperience && 
+          m.target.includes(primaryTarget) && 
+          m.id !== masterEx.id
+        );
+
+        if (altEx) {
+          // Swap it! Keep the original sets and reps/duration to maintain program structure
+          return {
+            ...altEx,
+            id: Date.now() + Math.random(),
+            originalId: altEx.id,
+            sets: ex.sets,
+            reps: ex.reps,
+            duration: ex.duration
+          };
+        }
+        
+        return ex; // Fallback
+      });
+
+      return {
+        id: `prog-${Date.now()}-${idx}`,
+        name: routine.name,
+        restTime: routine.restTime,
+        warmupVideoUrls: [],
+        exercises: adjustedExercises,
+        planId: newPlanId,
+        planName: plan.name,
+        planLevel: userExperience,
+        assignedDays: (plan.assignedDays && plan.assignedDays[idx]) ? [plan.assignedDays[idx]] : [] 
+      };
+    });
+    const updatedPrograms = [...programs, ...newPrograms];
+    setPrograms(updatedPrograms);
+    setActivePlanId(newPlanId);
+    setActiveProgramId(newPrograms[0].id);
+    setActiveTab('program');
+    localStorage.setItem('lyfit_onboarding_completed', 'true');
+    setShowQuestionnaire(false);
+  };
 
   // ==========================================
   // REST TIMER NOTIFICATION LOGIC
@@ -275,12 +349,12 @@ export default function App() {
                   migratedHistory[dateStr] = { ...d, workouts: workoutsArray };
                 } else {
                   const newD = { bioData: d.bioData || null, workouts: [] };
-                  if (d.programId || d.status) {
+                  if (d.programId || d.status || (d.log && Object.keys(d.log).length > 0)) {
                     newD.workouts.push({
                       id: `migrated_${Math.random().toString(36).substr(2, 9)}`,
-                      programId: d.programId,
-                      programName: d.programName,
-                      status: d.status,
+                      programId: d.programId || 'custom',
+                      programName: d.programName || 'Latihan Custom',
+                      status: d.status || 'completed',
                       log: d.log || {},
                       timestamp: d.status === 'completed' ? '12:00' : null
                     });
@@ -328,6 +402,15 @@ export default function App() {
               const migratedLib = parsedLib.map(ex => 
                 (ex.id === 101 && ex.name === 'Incline Smith Machine Press') ? { ...ex, name: 'Smith Machine Incline Bench Press' } : ex
               );
+              
+              // Migrate new default non-weight exercises (126-133) for existing users
+              const existingIds = new Set(migratedLib.map(ex => ex.id));
+              defaultMasterExercises.forEach(defaultEx => {
+                  if (defaultEx.id >= 126 && defaultEx.id <= 133 && !existingIds.has(defaultEx.id)) {
+                      migratedLib.push(defaultEx);
+                  }
+              });
+
               setExerciseLibrary(migratedLib);
             }
             if (data.settings) {
@@ -343,6 +426,10 @@ export default function App() {
               setReminderEnabled(parsedSettings.reminderEnabled ?? true);
               setBiometricStandard(parsedSettings.biometricStandard || 'asia');
               setUnitSystem(parsedSettings.unitSystem || 'metric');
+              setGymProfiles(parsedSettings.gymProfiles || [{ id: 'default', name: 'Lyfit Gym', equipment: 'all', config: {} }]);
+              setActiveGymId(parsedSettings.activeGymId || 'default');
+              setActivityTargets(parsedSettings.activityTargets || { steps: 10000, weeklyDuration: 150, sleep: 8 });
+              setActivePlanId(parsedSettings.activePlanId !== undefined ? parsedSettings.activePlanId : null);
             }
           } catch (err) {
             console.error("Parse Error saat load data utama (MENCEGAH AUTO-SAVE UNTUK MENGHINDARI DATA HILANG):", err);
@@ -399,7 +486,7 @@ export default function App() {
         setDoc(mainDocRef, {
           programs,
           exerciseLibrary,
-          settings: { theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem },
+          settings: { theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem, gymProfiles, activeGymId, activityTargets, activePlanId },
           updatedAt: new Date().toISOString()
         }, { merge: true }).catch(err => console.error("Auto-save Cloud gagal:", err));
 
@@ -426,7 +513,7 @@ export default function App() {
       
       return () => clearTimeout(timer);
     }
-  }, [history, programs, exerciseLibrary, theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, user, isDataLoaded]);
+  }, [history, programs, exerciseLibrary, theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem, gymProfiles, activeGymId, activityTargets, activePlanId, user, isDataLoaded]);
 
   // ==========================================
   // 3.5. REAL-TIME SYNC EXERCISE LOGS TO HISTORY
@@ -612,7 +699,10 @@ export default function App() {
 
   const navigateToWorkoutDate = (dateStr, progId) => { 
     playSoundEffect('click', soundEnabled); setSelectedDate(dateStr); 
-    if(progId) setActiveProgramId(progId); 
+    if(progId) {
+       setActiveProgramId(progId);
+       setFocusWorkoutId(progId === 'adhoc' ? 'extra' : progId);
+    }
     setResumeDurationSecs(0);
     setActiveTab('workout'); setIsEditingMode(false); 
   };
@@ -664,16 +754,26 @@ export default function App() {
     setLoadedDate(selectedDate);
   }, [selectedDate, activeProgramId, history, programs, isDataLoaded, loadedDate]);
 
-  const getSetLogs = (ex, overrideId) => {
-    if (!ex) return [];
-    const idToCheck = overrideId || ex.id;
+  const getSetLogs = (ex, idToCheck) => {
     if (exerciseLogs[idToCheck]) return exerciseLogs[idToCheck];
-    return Array.from({length: ex.sets || 3}).map(() => ({ w: ex.defaultWeight || 0, r: ex.reps || 10, d: ex.duration || 10, done: false }));
+    return Array.from({length: ex?.sets || 3}).map(() => ({ w: ex?.defaultWeight || 0, r: ex?.reps || 10, d: ex?.duration || 10, done: false }));
   };
 
   const getBaseEx = (exId) => {
-    const baseId = typeof exId === 'string' && exId.includes('-') ? Number(exId.split('-')[0]) : exId;
-    return [...programs.map(p=>p.exercises).flat(), ...extraExercises].find(e => e.id === exId || e.id === baseId);
+    const baseIdNum = typeof exId === 'string' && exId.includes('-') ? Number(exId.split('-')[0]) : exId;
+    const baseIdStr = typeof exId === 'string' && exId.includes('-') ? exId.split('-')[0] : exId;
+    
+    // 1. Cari di history hari ini (overriddenExercises atau exercises)
+    const todayData = history[selectedDate];
+    if (todayData && todayData.workouts) {
+       for (const w of todayData.workouts) {
+          const found = (w.overriddenExercises || w.exercises || []).find(e => e.id === exId || e.originalId === baseIdStr || e.originalId === baseIdNum);
+          if (found) return found;
+       }
+    }
+
+    // 2. Cari di programs & extraExercises
+    return [...programs.map(p=>p.exercises).flat(), ...extraExercises].find(e => e.id === exId || e.id === baseIdNum || e.id === baseIdStr);
   };
 
   const handleSetChange = (exId, setIdx, field, val) => {
@@ -782,6 +882,7 @@ export default function App() {
         isOpen: true,
         title: 'Batalkan Perubahan',
         message: 'Kamu yakin ingin membatalkan? Progress yang baru saja kamu buat selama sesi ini berjalan akan dibuang dan kembali ke data terakhir yang tersimpan.',
+        confirmText: 'Ya, Batalkan',
         onConfirm: () => {
             playSoundEffect('click', soundEnabled);
             setIsImmersiveMode(false);
@@ -905,7 +1006,7 @@ export default function App() {
     playSoundEffect('click', soundEnabled);
     setSelectedDate(dateStr);
     setActiveProgramId(w.programId);
-    setFocusWorkoutId(w.programId === 'adhoc' ? 'extra' : w.id);
+    setFocusWorkoutId(w.programId === 'adhoc' ? 'extra' : w.programId);
     
     // Parse previous duration to seconds
     let prevSecs = 0;
@@ -1027,6 +1128,18 @@ export default function App() {
         />
       )}
       
+      <ProgramQuestionnaireModal 
+         isOpen={showQuestionnaire}
+         onClose={() => {
+           setShowQuestionnaire(false);
+           localStorage.setItem('lyfit_onboarding_completed', 'true');
+         }}
+         onComplete={handleApplyRecommendedPlan}
+         t={t}
+         lang={lang}
+         soundEnabled={soundEnabled}
+      />
+      
       <SettingsModal 
          showSettings={showSettings} setShowSettings={setShowSettings} t={t} lang={lang} 
          theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} 
@@ -1052,6 +1165,8 @@ export default function App() {
                navigateToWorkoutDate={navigateToWorkoutDate} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect}
                theme={theme} exerciseLibrary={exerciseLibrary} selectedDate={selectedDate}
                biometricStandard={biometricStandard} unitSystem={unitSystem}
+               activityTargets={activityTargets} setActivityTargets={setActivityTargets}
+               gymProfiles={gymProfiles} activeGymId={activeGymId}
              />
          )}
          
@@ -1066,6 +1181,7 @@ export default function App() {
                onSetChange={handleSetChange} onToggleSet={handleToggleSet} onSkipSet={handleSkipSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet}
                onToggleSkip={handleToggleSkip} onRemoveExtra={handleRemoveExtraEx}
                isCurrentlyCompleted={isCurrentlyCompleted} onSaveWorkout={handleSaveWorkout} onCancelWorkout={handleCancelWorkout}
+               gymProfiles={gymProfiles} activeGymId={activeGymId}
                onAddExtraClick={() => setActiveAddModalTarget({type: 'adhoc'})} 
                onAddExtraExercise={(ex) => setExtraExercises([...extraExercises, ex])}
                
@@ -1081,6 +1197,7 @@ export default function App() {
                // Focus
                focusWorkoutId={focusWorkoutId} setFocusWorkoutId={setFocusWorkoutId}
                unitSystem={unitSystem}
+               activePlanId={activePlanId}
              />
          )}
          
@@ -1092,6 +1209,7 @@ export default function App() {
                selectedDate={selectedDate} setSelectedDate={setSelectedDate} setActiveTab={setActiveTab}
                weekStartDay={weekStartDay} defaultReminderTime={defaultReminderTime} reminderEnabled={reminderEnabled}
                unitSystem={unitSystem}
+               activePlanId={activePlanId}
              />
          )}
 
@@ -1101,19 +1219,24 @@ export default function App() {
                exerciseLibrary={exerciseLibrary} soundEnabled={soundEnabled}
                setActiveAddModalTarget={setActiveAddModalTarget}
                saveStateToHistory={saveStateToHistory}
+               openQuestionnaire={() => setShowQuestionnaire(true)}
+               activePlanId={activePlanId} setActivePlanId={setActivePlanId}
              />
          )}
 
          {activeTab === 'database' && (
              <DatabaseTab setConfirmModal={setConfirmModal} 
-             t={t} lang={lang} 
-             exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} 
-             history={history}
-             soundEnabled={soundEnabled}
-             warmupVideos={warmupVideos} setWarmupVideos={setWarmupVideos}
-             cooldownVideos={cooldownVideos} setCooldownVideos={setCooldownVideos}
-             onOpenDetail={setGlobalDetailExercise}
-           />
+                t={t} lang={lang}
+                exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} 
+                history={history}
+                soundEnabled={soundEnabled}
+                warmupVideos={warmupVideos} setWarmupVideos={setWarmupVideos}
+                cooldownVideos={cooldownVideos} setCooldownVideos={setCooldownVideos}
+                onOpenDetail={setGlobalDetailExercise}
+                theme={theme}
+                gymProfiles={gymProfiles} setGymProfiles={setGymProfiles}
+                activeGymId={activeGymId} setActiveGymId={setActiveGymId}
+             />
          )}
 
 

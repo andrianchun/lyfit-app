@@ -18,32 +18,38 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
       >
         {/* Thumbnail or Equipment Icon */}
         <div className="relative inline-block flex-shrink-0">
-          {(() => {
-             const ytId = getVideoId(ex.ytVideo);
-             if (ytId) {
-                return <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt={ex.name} loading="lazy" className={`w-12 h-12 rounded-xl border ${t.border} object-cover bg-black/5`} />;
-             } else if (ex.gifUrl) {
-                return <img src={ex.gifUrl} alt={ex.name} loading="lazy" className={`w-12 h-12 rounded-xl border ${t.border} object-cover bg-black/5`} />;
-             } else {
-                return (
-                  <div className={`w-12 h-12 rounded-xl border ${t.border} flex items-center justify-center ${t.inputBg}`}>
-                    <EquipmentIcon equipment={ex.equipment} size={20} className={t.textMuted} />
-                  </div>
-                );
-             }
-          })()}
-          {isCustom && <div className="absolute -top-1.5 -right-1.5 px-1 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black leading-none shadow-md border border-black/10 text-center">CUSTOM</div>}
+          <div className={`w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center overflow-hidden border ${t.border} relative`}>
+            {(() => {
+               const ytId = getVideoId(ex.ytVideo);
+               if (ytId) {
+                  return <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt={ex.name} loading="lazy" className="w-full h-full object-cover" />;
+               } else if (ex.gifUrl) {
+                  return <img src={ex.gifUrl} alt={ex.name} loading="lazy" className="w-full h-full object-cover" />;
+               } else {
+                  return <EquipmentIcon equipment={ex.equipment} size={20} className={t.textMuted} />;
+               }
+            })()}
+            {isCustom && <div className="absolute bottom-0 inset-x-0 bg-slate-900/90 backdrop-blur text-emerald-400 text-[6.5px] font-black uppercase tracking-widest text-center py-0.5 leading-none">CUSTOM</div>}
+          </div>
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h4 className={`body-lg font-black ${t.textMain} truncate flex items-center gap-1.5`}>
+          <h4 className={`body-lg font-black ${t.textMain} truncate flex items-center gap-1.5 flex-wrap`}>
              {ex.name}
           </h4>
-          <p className={`body-md ${t.textAccent} truncate`}>{formatTarget(ex.target, lang?.id)}</p>
-          <p className={`text-[10px] font-bold ${t.textMuted}`}>
-            {ex.equipment || 'Lainnya'} · {exerciseTypeLabels[ex.type] || ex.type}
-          </p>
+          <div className="flex flex-col gap-1.5 mt-1">
+            <div className="flex gap-1.5 flex-wrap items-center">
+               <span className={`text-[10px] font-black uppercase tracking-wider ${t.textAccent}`}>{ex.equipment || 'Lainnya'}</span>
+               <span className={`text-[10px] font-bold ${t.textMuted}`}>•</span>
+               <span className={`text-[10px] font-bold uppercase tracking-wider ${t.textMuted}`}>{exerciseTypeLabels[ex.type] || ex.type}</span>
+            </div>
+            <div className="flex gap-1 flex-wrap items-center -ml-1.5">{Array.isArray(ex.target) ? ex.target.map(m => (
+                <span key={m} className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${t.inputBg} ${t.textMuted} border ${t.border}`}>{formatTarget(m, lang?.id)}</span>
+              )) : ex.target && (
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${t.inputBg} ${t.textMuted} border ${t.border}`}>{formatTarget(ex.target, lang?.id)}</span>
+              )}</div>
+          </div>
         </div>
       </div>
 

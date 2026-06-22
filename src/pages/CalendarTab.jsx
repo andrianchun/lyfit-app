@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, CheckCircle, CalendarDays, Edit2, PlayCircle, X, Copy, Repeat, Plus, Clock, Bell, CalendarPlus, CalendarCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, CheckCircle, CalendarDays, Edit2, PlayCircle, X, Copy, Repeat, Plus, Clock, Bell, CalendarPlus, CalendarCheck, BellOff, BellRing, ToggleLeft, ToggleRight } from 'lucide-react';
+import SwipeInput from '../components/SwipeInput';
 import { getLocalYMD } from '../data/constants';
+import { formatNumber } from '../utils/numberFormat';
 import PanoramicSlider from '../components/PanoramicSlider';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
@@ -10,7 +12,7 @@ const CalendarTab = ({
   setActiveTab, soundEnabled, playSoundEffect, navigateToWorkoutDate,
   exerciseLogs, skippedExercises, handleEditPastWorkout,
   weekStartDay = 0, defaultReminderTime = "15:00", reminderEnabled = true,
-  unitSystem, setConfirmModal
+  unitSystem, setConfirmModal, activePlanId
 }) => {
   const isImp = unitSystem === 'imperial';
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -26,8 +28,7 @@ const CalendarTab = ({
   const [repeatCount, setRepeatCount] = useState(4);
   const [draggedDate, setDraggedDate] = useState(null);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState(null);
-  const [editingReminderId, setEditingReminderId] = useState(null);
-  const [tempReminderTime, setTempReminderTime] = useState("");
+  const [notificationModalTarget, setNotificationModalTarget] = useState(null);
   const [slideDirection, setSlideDirection] = useState('right');
 
   // Swipe states for Header
@@ -134,8 +135,55 @@ const CalendarTab = ({
     }
   }, [selectedDate, calendarMode]);
 
+  const DAY_MAP = {
+    0: 'Min', 1: 'Sen', 2: 'Sel', 3: 'Rab', 4: 'Kam', 5: 'Jum', 6: 'Sab'
+  };
+
   const getDayWorkouts = (dateStr) => {
-    return history[dateStr]?.workouts || [];
+    const historical = history[dateStr]?.workouts || [];
+    const todayStr = getLocalYMD(new Date());
+    
+    // Filter history: Hanya tampilkan workout yang sesuai dengan activePlanId (sejarah maupun rencana)
+    const validHistorical = historical.filter(w => {
+      const p = programs.find(prog => prog.id === w.programId);
+      const wPlanId = (p ? p.planId : null) || 'custom';
+      
+      if (w.programId !== 'adhoc') {
+        if (activePlanId === 'custom') {
+          if (wPlanId !== 'custom') return false;
+        } else {
+          if (wPlanId !== activePlanId) return false;
+        }
+      }
+      return true;
+    });
+
+    if (validHistorical.length > 0) return validHistorical;
+
+    // Jika belum ada, dan ini adalah activePlanId yang memiliki assignedDays, kita proyeksikan!
+    if (dateStr < todayStr) return []; // Jangan proyeksikan masa lalu
+
+    if (!activePlanId || activePlanId === 'custom') return [];
+
+    const planRoutines = programs.filter(p => p.planId === activePlanId);
+    if (planRoutines.length === 0) return [];
+    
+    const dateObj = new Date(dateStr);
+    const dayName = DAY_MAP[dateObj.getDay()];
+    
+    // Find all routines that are explicitly assigned to this day
+    const projectedRoutines = planRoutines.filter(r => r.assignedDays && r.assignedDays.includes(dayName));
+    
+    if (projectedRoutines.length === 0) return [];
+
+    return projectedRoutines.map(pr => ({
+      id: `projected_${pr.id}_${dateStr}`, // include date to ensure unique key across dates if needed
+      programId: pr.id,
+      programName: pr.name,
+      status: 'planned',
+      isProjected: true,
+      log: {}
+    }));
   };
 
   const scheduleWorkoutNotification = async (workoutId, programName, dateStr, timeStr) => {
@@ -197,16 +245,21 @@ const CalendarTab = ({
     } catch (err) {}
   };
 
-  const saveReminderTime = async (workoutId, programName, dateStr) => {
+  const saveReminderFromModal = async (enabled, hours, minutes) => {
      playSoundEffect('click', soundEnabled);
+     if (!notificationModalTarget) return;
+     
+     const { workoutId, programName, dateStr, existingNotifId } = notificationModalTarget;
+     let newTimeStr = null;
      let notifId = null;
-     if (reminderEnabled && tempReminderTime) {
-       const d = history[dateStr];
-       if (d && d.workouts) {
-         const existing = d.workouts.find(w => w.id === workoutId);
-         if (existing && existing.reminderNotifId) cancelWorkoutNotification(existing.reminderNotifId);
-       }
-       notifId = await scheduleWorkoutNotification(workoutId, programName, dateStr, tempReminderTime);
+     
+     if (existingNotifId) {
+        cancelWorkoutNotification(existingNotifId);
+     }
+     
+     if (enabled) {
+        newTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        notifId = await scheduleWorkoutNotification(workoutId, programName, dateStr, newTimeStr);
      }
      
      setHistory(prev => {
@@ -215,7 +268,7 @@ const CalendarTab = ({
         if (d && d.workouts) {
           const updatedWorkouts = d.workouts.map(w => {
             if (w.id === workoutId) {
-              return { ...w, reminderTime: tempReminderTime, reminderNotifId: notifId };
+              return { ...w, reminderTime: newTimeStr, reminderNotifId: notifId };
             }
             return w;
           });
@@ -223,7 +276,7 @@ const CalendarTab = ({
         }
         return h;
      });
-     setEditingReminderId(null);
+     setNotificationModalTarget(null);
   };
 
   const handleAddToNativeCalendar = (workoutId, programName, dateStr, timeStr) => {
@@ -303,17 +356,8 @@ const CalendarTab = ({
     }));
     h[targetDateInput] = { ...targetD, workouts: [...(targetD.workouts||[]), ...newWorkouts] };
     
-    if (newWorkouts.length > 0) {
-      // Background schedule, won't block UI
-      newWorkouts.forEach(async w => {
-        w.reminderTime = defaultReminderTime;
-        w.reminderNotifId = await scheduleWorkoutNotification(w.id, w.programName, targetDateInput, defaultReminderTime);
-        setHistory(currentH => {
-          const updatedD = currentH[targetDateInput] || { workouts: [] };
-          const updatedWorkouts = (updatedD.workouts || []).map(uw => uw.id === w.id ? {...uw, reminderTime: w.reminderTime, reminderNotifId: w.reminderNotifId} : uw);
-          return {...currentH, [targetDateInput]: {...updatedD, workouts: updatedWorkouts}};
-        });
-      });
+    if (newWorkouts.length > 0 && actionType === 'copy') {
+      // (Optional) We could schedule things here, but user wants them off by default
     }
     
     if (actionType === 'move') {
@@ -347,17 +391,6 @@ const CalendarTab = ({
             log: {}
         }));
         h[targetStr] = { ...targetD, workouts: [...(targetD.workouts||[]), ...newWorkouts] };
-        if (newWorkouts.length > 0) {
-           newWorkouts.forEach(async w => {
-             w.reminderTime = defaultReminderTime;
-             w.reminderNotifId = await scheduleWorkoutNotification(w.id, w.programName, targetStr, defaultReminderTime);
-             setHistory(currentH => {
-               const updatedD = currentH[targetStr] || { workouts: [] };
-               const updatedWorkouts = (updatedD.workouts || []).map(uw => uw.id === w.id ? {...uw, reminderTime: w.reminderTime, reminderNotifId: w.reminderNotifId} : uw);
-               return {...currentH, [targetStr]: {...updatedD, workouts: updatedWorkouts}};
-             });
-           });
-        }
         copied++;
     }
     setHistory(h);
@@ -389,7 +422,6 @@ const CalendarTab = ({
   const addWorkoutToDate = async (p) => {
     playSoundEffect('click', soundEnabled); 
     const wId = `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const notifId = await scheduleWorkoutNotification(wId, p.name, selectedDate, defaultReminderTime);
 
     setHistory(prev => {
       const h = { ...prev };
@@ -411,9 +443,7 @@ const CalendarTab = ({
             programId: p.id, 
             programName: newName, 
             status: 'planned', 
-            log: {},
-            reminderTime: defaultReminderTime,
-            reminderNotifId: notifId
+            log: {}
           }
         ]
       };
@@ -605,6 +635,7 @@ const CalendarTab = ({
   const hasCompleted = selectedWorkouts.some(w => checkIsCompletedStrict(w, selectedDate));
 
   return (
+    <>
     <div className={`flex flex-col sm:flex-row h-[calc(100vh-120px)] overflow-hidden ${t.textMain} sm:gap-2`}>
       {/* STICKY CALENDAR HEADER */}
       <div className="shrink-0 z-10 pt-2 relative sm:w-[55%] md:w-[60%] lg:w-[65%] sm:h-full sm:overflow-y-auto hide-scrollbar sm:pr-2">
@@ -736,9 +767,9 @@ const CalendarTab = ({
                         >
                           <span className={spanClass}>{day}</span>
                           {workouts.length > 0 && (
-                            <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center px-1">
+                            <div className="flex flex-wrap justify-center gap-1 mt-1 w-full px-1">
                               {workouts.map(w => (
-                                <div key={w.id} className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${checkIsCompletedStrict(w, dateKey) ? (theme === 'dark' ? 'bg-[#41759b]' : 'bg-[#B79347]') : (theme === 'dark' ? 'bg-[#294c65]' : 'bg-[#CBB989]')}`} />
+                                <div key={w.id} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${checkIsCompletedStrict(w, dateKey) ? t.bgAccent : 'bg-slate-400 dark:bg-slate-600'}`} title={w.programName}></div>
                               ))}
                             </div>
                           )}
@@ -865,7 +896,9 @@ const CalendarTab = ({
 
                        <div className="space-y-4 mb-6 px-3 sm:px-6">
                          {panelWorkouts.length === 0 ? (
-                            <div className="p-4 text-center caption opacity-50">Tidak ada jadwal</div>
+                            <div className="p-4 text-center caption opacity-50">
+                              {!activePlanId ? "Tidak ada program aktif. Silakan pilih program di tab Program." : "Tidak ada jadwal"}
+                            </div>
                          ) : (
                            panelWorkouts.map(w => {
                            const isCompleted = checkIsCompletedStrict(w, targetDateStr);
@@ -883,6 +916,11 @@ const CalendarTab = ({
                               <div key={w.id} className={`p-4 rounded-2xl ${isCompleted ? 'border ' + t.borderAccentSoft + ' ' + t.bgAccentSoft : 'border-2 border-dashed ' + t.borderAccentSoft + ' bg-black/5 dark:bg-white/5'} flex flex-col relative transition-all ${isExpanded ? 'ring-2 ' + t.ringAccent : 'hover:scale-[1.02] cursor-pointer'}`} onClick={() => { if(!isExpanded) { playSoundEffect('click', soundEnabled); setExpandedWorkoutId(w.id); setCalendarDate(new Date(targetDateStr)); setCalendarMode('weekly'); } }}>
                                 <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
                                   {!isCompleted && (
+                                    <button onClick={(e) => { e.stopPropagation(); setNotificationModalTarget({ workoutId: w.id, programName: w.programName, dateStr: targetDateStr, existingNotifId: w.reminderNotifId, currentTime: w.reminderTime }); }} className={`p-1.5 rounded-lg transition-colors ${w.reminderTime ? t.textAccent + ' hover:bg-black/10 dark:hover:bg-white/10' : 'opacity-40 hover:opacity-70 hover:bg-black/10 dark:hover:bg-white/10'}`} title="Pengingat">
+                                      {w.reminderTime ? <Bell size={16} /> : <BellOff size={16} />}
+                                    </button>
+                                  )}
+                                  {!isCompleted && (
                                     <button onClick={(e) => { e.stopPropagation(); handleAddToNativeCalendar(w.id, w.programName, targetDateStr, w.reminderTime); }} className={`p-1.5 rounded-lg transition-colors ${w.gcalSynced ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-blue-500/50 hover:text-blue-500 hover:bg-blue-500/10'}`} title={w.gcalSynced ? "Sudah disinkron (Klik lagi untuk kirim ulang)" : "Tambah ke Kalender"}>
                                       {w.gcalSynced ? <CalendarCheck size={16} /> : <CalendarPlus size={16} />}
                                     </button>
@@ -891,9 +929,11 @@ const CalendarTab = ({
                                     <X size={16} />
                                   </button>
                                 </div>
-                                <div className="flex items-center mb-2 pr-16">
-                                  {isCompleted ? <CheckCircle size={18} className={`${t.textAccent} mr-2`} /> : <PlayCircle size={18} className={`${t.textMuted} mr-2`} />}
-                                  <span className="font-black text-left">{w.programName}</span>
+                                <div className="flex items-start mb-2 pr-28">
+                                  <div className="mt-0.5 mr-2 shrink-0">
+                                    {isCompleted ? <CheckCircle size={18} className={t.textAccent} /> : <PlayCircle size={18} className={t.textMuted} />}
+                                  </div>
+                                  <span className="font-black text-left leading-tight break-words">{w.programName}</span>
                                 </div>
                                 <div className="flex flex-col gap-1 mt-1">
                                   {isCompleted ? (
@@ -903,30 +943,17 @@ const CalendarTab = ({
                                       <span>{w.duration || '00:00'} menit</span>
                                     </div>
                                   ) : (
-                                    <div className="flex items-center justify-between gap-2 mt-1 relative z-10" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center justify-between gap-2 mt-1 relative z-10">
                                       <div className="caption opacity-70 flex items-center gap-1.5 flex-wrap">
                                         <span>Direncanakan</span>
                                         {w.reminderTime && (
-                                          <>
+                                          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5">
                                             <span>•</span>
-                                            {editingReminderId === w.id ? (
-                                              <div className="flex items-center gap-1">
-                                                <input 
-                                                  type="time" 
-                                                  value={tempReminderTime} 
-                                                  onChange={e => setTempReminderTime(e.target.value)}
-                                                  className={`bg-transparent border-b ${t.borderAccent} outline-none w-16 text-center`}
-                                                />
-                                                <button onClick={() => saveReminderTime(w.id, w.programName, targetDateStr)} className={`text-xs ${t.textAccent} font-bold px-1`}>OK</button>
-                                                <button onClick={() => setEditingReminderId(null)} className="text-xs opacity-50 px-1">Batal</button>
-                                              </div>
-                                            ) : (
-                                              <button onClick={() => { setTempReminderTime(w.reminderTime); setEditingReminderId(w.id); }} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}>
-                                                <Bell size={12} className={t.textAccent} />
-                                                <span className="font-bold">{w.reminderTime}</span>
-                                              </button>
-                                            )}
-                                          </>
+                                            <button onClick={() => { setNotificationModalTarget({ workoutId: w.id, programName: w.programName, dateStr: targetDateStr, existingNotifId: w.reminderNotifId, currentTime: w.reminderTime }); }} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}>
+                                              <Bell size={12} className={t.textAccent} />
+                                              <span className="font-bold">{w.reminderTime}</span>
+                                            </button>
+                                          </div>
                                         )}
                                       </div>
                                     </div>
@@ -957,9 +984,10 @@ const CalendarTab = ({
                                             const maxW = Math.max(...doneSets.map(s => Number(s.w) || 0)) || ex.defaultWeight || 0;
                                             const maxR = Math.max(...doneSets.map(s => Number(s.r) || 0)) || ex.reps || 0;
                                             const maxD = Math.max(...doneSets.map(s => Number(s.d) || 0)) || ex.duration || 0;
-                                            if (ex.type === 'time') textStr = `${doneSets.length} x ${maxD}s`;
-                                            else if (ex.type === 'reps') textStr = `${doneSets.length} x ${maxR}`;
-                                            else textStr = `${doneSets.length} x ${maxR} x ${isImp ? Math.round(maxW * 2.20462 * 10)/10 + ' lbs' : maxW + ' kg'}`;
+                                            const langId = lang?.id || 'ID';
+                                            if (ex.type === 'time') textStr = `${doneSets.length} x ${formatNumber(maxD, langId)}s`;
+                                            else if (ex.type === 'reps') textStr = `${doneSets.length} x ${formatNumber(maxR, langId)}`;
+                                            else textStr = `${doneSets.length} x ${formatNumber(maxR, langId)} x ${isImp ? formatNumber(Math.round(maxW * 2.20462 * 10)/10, langId) + ' lbs' : formatNumber(maxW, langId) + ' kg'}`;
                                          } else textStr = "Belum dimulai";
           
                                          return (
@@ -972,7 +1000,7 @@ const CalendarTab = ({
                                     </div>
                                     <div className="flex gap-2">
                                        <button onClick={(e) => { e.stopPropagation(); setExpandedWorkoutId(null); setCalendarMode('monthly'); }} className={`flex-1 py-3 rounded-xl border border-dashed ${t.border} body-lg font-bold`}>Tutup</button>
-                                       <button onClick={(e) => { e.stopPropagation(); const hasExercises = w.exercises && w.exercises.length > 0; if (!isCompleted && !hasExercises) { playSoundEffect('click', soundEnabled); navigateToWorkoutDate(targetDateStr); } else { handleEditPastWorkout(targetDateStr, w); } }} className={`flex-[2] py-3 rounded-xl ${t.bgAccent} text-white font-black body-lg flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all`}>
+                                       <button onClick={(e) => { e.stopPropagation(); const hasExercises = w.exercises && w.exercises.length > 0; if (!isCompleted && !hasExercises) { playSoundEffect('click', soundEnabled); navigateToWorkoutDate(targetDateStr, w.programId); } else { handleEditPastWorkout(targetDateStr, w); } }} className={`flex-[2] py-3 rounded-xl ${t.bgAccent} text-white font-black body-lg flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all`}>
                                          <Edit2 size={16} /> {isCompleted ? 'Edit Riwayat' : ((w.exercises && w.exercises.length > 0) ? 'Mulai Latihan' : 'Edit Latihan')}
                                        </button>
                                     </div>
@@ -985,33 +1013,35 @@ const CalendarTab = ({
                       </div>
 
                          <div className="px-3 sm:px-6 pb-6">
-                            {!showProgramSelect ? (
-                              <button 
-                                 onClick={() => { playSoundEffect('click', soundEnabled); setShowProgramSelect(true); }}
-                                 className={`w-full py-4 rounded-xl border-2 border-dashed ${t.borderAccentSoft} ${t.textAccent} font-bold flex items-center justify-center hover:${t.bgAccentSoft} transition-colors`}
-                              >
-                                 <Plus size={18} className="mr-2" /> Tambah Program
-                              </button>
-                            ) : (
-                              <div className={`p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-dashed ${t.border} animate-in fade-in`}>
-                                 <div className="flex justify-between items-center mb-3">
-                                   <span className="body-lg font-bold">Pilih Program Latihan:</span>
-                                   <button onClick={() => setShowProgramSelect(false)} className="p-1 hover:bg-white/10 rounded-lg"><X size={16}/></button>
+                            {activePlanId && (
+                               !showProgramSelect ? (
+                                 <button 
+                                    onClick={() => { playSoundEffect('click', soundEnabled); setShowProgramSelect(true); }}
+                                    className={`w-full py-4 rounded-xl border-2 border-dashed ${t.borderAccentSoft} ${t.textAccent} font-bold flex items-center justify-center hover:${t.bgAccentSoft} transition-colors`}
+                                 >
+                                    <Plus size={18} className="mr-2" /> Tambah Program
+                                 </button>
+                               ) : (
+                                 <div className={`p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-dashed ${t.border} animate-in fade-in`}>
+                                    <div className="flex justify-between items-center mb-3">
+                                      <span className="body-lg font-bold">Pilih Program Latihan:</span>
+                                      <button onClick={() => setShowProgramSelect(false)} className="p-1 hover:bg-white/10 rounded-lg"><X size={16}/></button>
+                                    </div>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                      {programs.filter(p => activePlanId === 'custom' ? !p.planId || p.planId === 'custom' : p.planId === activePlanId).map(p => (
+                                        <button 
+                                          key={p.id} 
+                                          onClick={() => addWorkoutToDate(p)}
+                                          className={`w-full p-3 rounded-xl border ${t.border} text-left body-lg font-bold hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex justify-between items-center`}
+                                        >
+                                          {p.name}
+                                          <Plus size={16} className="opacity-50" />
+                                        </button>
+                                      ))}
+                                    </div>
                                  </div>
-                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                   {programs.map(p => (
-                                     <button 
-                                       key={p.id} 
-                                       onClick={() => addWorkoutToDate(p)}
-                                       className={`w-full p-3 rounded-xl border ${t.border} text-left body-lg font-bold hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex justify-between items-center`}
-                                     >
-                                       {p.name}
-                                       <Plus size={16} className="opacity-50" />
-                                     </button>
-                                   ))}
-                                 </div>
-                              </div>
-                            )}
+                               )
+                             )}
 
                             {panelWorkouts.some(w => !checkIsCompletedStrict(w, targetDateStr)) && targetDateStr === todayStr && (
                               <button 
@@ -1027,6 +1057,128 @@ const CalendarTab = ({
                }}
             />
             </div>
+      </div>
+    </div>
+
+      {/* NOTIFICATION MODAL */}
+      {notificationModalTarget && (
+        <NotificationModal 
+          t={t}
+          target={notificationModalTarget}
+          defaultReminderTime={defaultReminderTime}
+          soundEnabled={soundEnabled}
+          lang={lang}
+          onSave={saveReminderFromModal}
+          onClose={() => setNotificationModalTarget(null)}
+        />
+      )}
+    </>
+  );
+};
+
+const NotificationModal = ({ t, target, defaultReminderTime, soundEnabled, lang, onSave, onClose }) => {
+  const hasExisting = !!target.currentTime;
+  const [enabled, setEnabled] = React.useState(true);
+  
+  const parseInit = () => {
+    const src = hasExisting ? target.currentTime : (defaultReminderTime || '15:00');
+    const p = (src || '15:00').split(':');
+    return { h: String(parseInt(p[0]) || 15).padStart(2, '0'), m: String(parseInt(p[1]) || 0).padStart(2, '0') };
+  };
+  const init = parseInit();
+  const [hh, setHh] = React.useState(init.h);
+  const [mm, setMm] = React.useState(init.m);
+
+  const isDark = t.bgCard?.includes('0a1f32') || t.bgCard?.includes('040f1a');
+
+  const clamp = (val, max) => {
+    const n = parseInt(val) || 0;
+    return String(Math.min(max, Math.max(0, n))).padStart(2, '0');
+  };
+
+  const handleSave = () => {
+    if (enabled) {
+      onSave(true, parseInt(hh) || 0, parseInt(mm) || 0);
+    } else {
+      onSave(false, 0, 0);
+    }
+  };
+
+  const inputCls = `w-16 h-14 text-center font-black text-2xl rounded-2xl outline-none border-2 ${t.border} focus:ring-2 ${t.ringAccent} ${t.textMain}`;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200" />
+      <div 
+        className={`relative w-full max-w-xs rounded-3xl p-5 shadow-2xl border ${t.border} animate-in zoom-in-95 fade-in duration-300`}
+        style={{ 
+          background: isDark 
+            ? 'rgba(15, 40, 60, 0.65)' 
+            : 'rgba(255, 255, 255, 0.65)', 
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Title */}
+        <div className="flex items-center gap-3 mb-1">
+          <div className={`w-10 h-10 rounded-xl ${t.bgAccentSoft} flex items-center justify-center shrink-0`}>
+            {enabled ? <Bell size={20} className={t.textAccent} /> : <BellOff size={20} className="opacity-40" />}
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-black body-lg">Pengingat</h3>
+            <p className="caption opacity-50 truncate">{target.programName}</p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className={`h-px my-3 ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+
+        {/* Toggle */}
+        <div className="flex items-center justify-between py-1">
+          <span className="font-bold body-lg">Aktifkan</span>
+          <button 
+            onClick={() => setEnabled(!enabled)}
+            className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${enabled ? t.bgAccent : isDark ? 'bg-white/15' : 'bg-black/15'}`}
+          >
+            <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${enabled ? 'translate-x-7' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        {/* Time Picker - HH : MM */}
+        {enabled && (
+          <div className="animate-in fade-in duration-200 mt-3">
+            <div className="flex items-center justify-center gap-3">
+              <input 
+                type="text" inputMode="numeric" maxLength={2}
+                value={hh} 
+                onChange={e => setHh(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                onBlur={() => setHh(clamp(hh, 23))}
+                className={inputCls}
+                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}
+              />
+              <span className="font-black text-2xl opacity-30">:</span>
+              <input 
+                type="text" inputMode="numeric" maxLength={2}
+                value={mm} 
+                onChange={e => setMm(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                onBlur={() => setMm(clamp(mm, 59))}
+                className={inputCls}
+                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose} className={`flex-1 py-3 rounded-2xl border ${t.border} font-bold body-lg active:scale-95 transition-all`}>
+            Batal
+          </button>
+          <button onClick={handleSave} className={`flex-[2] py-3 rounded-2xl ${t.bgAccent} text-white font-black body-lg shadow-lg active:scale-95 transition-all`}>
+            {enabled ? 'Simpan' : 'Matikan'}
+          </button>
+        </div>
       </div>
     </div>
   );
