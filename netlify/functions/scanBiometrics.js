@@ -49,41 +49,56 @@ Expected keys:
             }]
         });
 
-        const options = {
-            hostname: 'generativelanguage.googleapis.com',
-            port: 443,
-            path: `/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(payload)
-            }
-        };
+        const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+        let apiResponse = null;
 
-        const apiResponse = await new Promise((resolve, reject) => {
-            const req = https.request(options, (res) => {
-                let data = '';
-                res.on('data', (chunk) => { data += chunk; });
-                res.on('end', () => {
-                    resolve({ statusCode: res.statusCode, body: data });
+        for (const model of modelsToTry) {
+            const options = {
+                hostname: 'generativelanguage.googleapis.com',
+                port: 443,
+                path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(payload)
+                }
+            };
+
+            apiResponse = await new Promise((resolve, reject) => {
+                const req = https.request(options, (res) => {
+                    let data = '';
+                    res.on('data', (chunk) => { data += chunk; });
+                    res.on('end', () => {
+                        resolve({ statusCode: res.statusCode, body: data });
+                    });
                 });
+                req.on('error', (e) => reject(e));
+                req.write(payload);
+                req.end();
             });
-            req.on('error', (e) => reject(e));
-            req.write(payload);
-            req.end();
-        });
+
+            if (apiResponse.statusCode === 200) {
+                break; // Berhasil, keluar dari loop
+            }
+            if (apiResponse.statusCode === 429) {
+                return { statusCode: 429, body: JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED' }) };
+            }
+            // Jika error 503 (Unavailable) atau 404 (Not Found), lanjut ke iterasi loop model berikutnya
+            if (apiResponse.statusCode !== 503 && apiResponse.statusCode !== 404) {
+                 break; // Berhenti jika error lain yang tidak bisa difix dengan ganti model
+            }
+        }
 
         if (apiResponse.statusCode !== 200) {
-            // Check for rate limit
-            if (apiResponse.statusCode === 429) {
-                 return {
-                    statusCode: 429,
-                    body: JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED' })
-                 };
-            }
+            let errMsg = 'Failed to call Gemini API';
+            try {
+                const parsed = JSON.parse(apiResponse.body);
+                if (parsed.error && parsed.error.message) errMsg = parsed.error.message;
+            } catch (e) {}
+            
             return {
                 statusCode: apiResponse.statusCode,
-                body: JSON.stringify({ error: 'Failed to call Gemini API', details: apiResponse.body })
+                body: JSON.stringify({ error: errMsg, details: apiResponse.body })
             };
         }
 

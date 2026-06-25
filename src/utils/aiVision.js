@@ -32,18 +32,48 @@ Expected keys:
                 }]
             };
 
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${userApiKey.trim()}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+            let res = null;
+            let rawText = '';
+            let errorMsg = 'Unknown server error';
 
-            if (!res.ok) {
-                if (res.status === 429) {
-                    throw new Error('RATE_LIMIT_EXCEEDED');
+            for (const model of modelsToTry) {
+                try {
+                    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userApiKey.trim()}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        break; // Berhasil! Keluar dari loop
+                    }
+
+                    if (res.status === 429) {
+                        throw new Error('RATE_LIMIT_EXCEEDED');
+                    }
+
+                    rawText = await res.text();
+                    errorMsg = `Server Error (${res.status}) on ${model}: ${rawText.substring(0, 50)}...`;
+                    
+                    try {
+                        const errData = JSON.parse(rawText);
+                        if (errData && errData.error) errorMsg = errData.error.message || errData.error;
+                    } catch (e) {}
+
+                    // Jika error 503 (Unavailable) atau 404 (Not Found), biarkan loop mencoba model berikutnya
+                    if (res.status !== 503 && res.status !== 404) {
+                        throw new Error(errorMsg); // Error fatal lain, langsung berhenti
+                    }
+                } catch (err) {
+                    if (err.message === 'RATE_LIMIT_EXCEEDED' || (errorMsg && err.message !== errorMsg && err.message !== 'RATE_LIMIT_EXCEEDED')) {
+                        throw err; // Lempar error network atau rate limit
+                    }
                 }
-                const errData = await res.text();
-                throw new Error(`Google API Error: ${errData}`);
+            }
+
+            if (!res || !res.ok) {
+                throw new Error(errorMsg);
             }
 
             const data = await res.json();
