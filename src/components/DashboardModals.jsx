@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, CalendarDays, Loader2, ShieldAlert, HeartPulse, Camera } from 'lucide-react';
+import { X, Check, CalendarDays, Loader2, ShieldAlert, HeartPulse, Camera, Image as ImageIcon, Scan } from 'lucide-react';
 import { playSoundEffect } from '../utils/audio';
 import SwipeInput from './SwipeInput';
 import { extractBiometricsFromImage } from '../utils/aiVision';
@@ -21,6 +21,7 @@ const DashboardModals = ({
   const [authSim, setAuthSim] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [scanSuccess, setScanSuccess] = useState(false);
 
   const handleAIScan = async (e) => {
       const file = e.target.files?.[0];
@@ -110,6 +111,8 @@ const DashboardModals = ({
                       return newBio;
                   });
                   playSoundEffect('success', soundEnabled);
+                  setScanSuccess(true);
+                  setTimeout(() => setScanSuccess(false), 2500);
               } catch (err) {
                   if (err.message === 'RATE_LIMIT_EXCEEDED') {
                       setScanError('Server penuh. Masukkan API Key pribadimu di Pengaturan untuk bypass limit.');
@@ -262,10 +265,14 @@ const DashboardModals = ({
                         <input type="date" value={modalDate} onChange={(e) => setModalDate(e.target.value)} onClick={(e) => { try { e.target.showPicker() } catch(err){} }} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                     </div>
                  </div>
-                 <div className="flex space-x-2">
-                     <label className={`p-2 rounded-full ${isScanning ? 'bg-zinc-500/20 text-zinc-500' : `${t.btnBg} ${t.textAccent} hover:brightness-110`} transition-all cursor-pointer shadow-sm`} title="Scan Foto via AI">
-                         {isScanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-                         <input type="file" accept="image/*" capture="environment" onChange={handleAIScan} className="hidden" disabled={isScanning} />
+                 <div className="flex space-x-2 relative">
+                     <label className={`p-2 rounded-full ${isScanning ? 'bg-zinc-500/20 text-zinc-500' : scanSuccess ? 'bg-green-500/20 text-green-500' : `${t.btnBg} ${t.textAccent} hover:brightness-110`} transition-all cursor-pointer shadow-sm relative z-10`} title="Kamera">
+                         {isScanning ? <Loader2 size={16} className="animate-spin" /> : scanSuccess ? <Check size={16} /> : <Camera size={16} />}
+                         <input type="file" accept="image/*" capture="environment" onChange={handleAIScan} className="hidden" disabled={isScanning || scanSuccess} />
+                     </label>
+                     <label className={`p-2 rounded-full ${isScanning ? 'bg-zinc-500/20 text-zinc-500' : scanSuccess ? 'bg-green-500/20 text-green-500' : `${t.btnBg} ${t.textAccent} hover:brightness-110`} transition-all cursor-pointer shadow-sm relative z-10`} title="Galeri">
+                         {isScanning ? <Loader2 size={16} className="animate-spin" /> : scanSuccess ? <Check size={16} /> : <ImageIcon size={16} />}
+                         <input type="file" accept="image/*" onChange={handleAIScan} className="hidden" disabled={isScanning || scanSuccess} />
                      </label>
                      <button 
                          onClick={() => { 

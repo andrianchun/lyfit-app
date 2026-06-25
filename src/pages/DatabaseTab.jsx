@@ -125,15 +125,15 @@ const ExerciseForm = ({ t, lang, formData, setFormData, originalData, onSave, on
       {/* Equipment and Type */}
       <div className="grid grid-cols-[4fr_5fr] gap-3">
         {/* Equipment */}
-        <div>
+        <div className={openDropdown === 'equipment' ? 'relative z-[70]' : 'relative z-10'}>
           <label className={`body-md ${t.textMuted} mb-2 block`}>{lang?.equipment || 'Equipment'}</label>
           <div className="relative">
             <button 
                 onClick={(e) => { e.preventDefault(); setOpenDropdown(openDropdown === 'equipment' ? null : 'equipment'); }}
                 className={`relative z-[60] w-full body-lg font-bold p-3 px-4 rounded-xl flex items-center justify-between space-x-2 ${t.inputBg} ${t.textMain} border border-transparent focus:ring-2 focus:${t.ringAccent} transition-colors`}
             >
-                <span>{formData.equipment}</span>
-                <ChevronDown size={16} className={`transition-transform duration-200 ${openDropdown === 'equipment' ? 'rotate-180' : ''} ${t.textMuted}`} />
+                <span className="truncate flex-1 text-left min-w-0">{formData.equipment}</span>
+                <ChevronDown size={16} className={`transition-transform duration-200 shrink-0 ${openDropdown === 'equipment' ? 'rotate-180' : ''} ${t.textMuted}`} />
             </button>
             {openDropdown === 'equipment' && (
                 <div className={`absolute top-full right-0 left-0 -mt-3 pt-4 pb-1 rounded-b-2xl border ${t.border} border-t-0 ${t.bgCard} shadow-xl max-h-60 overflow-y-auto overflow-x-hidden custom-scrollbar z-[50] animate-in slide-in-from-top-2 origin-top`}>
@@ -145,7 +145,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, originalData, onSave, on
                                 setFormData(prev => ({ ...prev, equipment: eq }));
                                 setOpenDropdown(null);
                             }}
-                            className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${formData.equipment === eq ? t.textAccent + ' bg-emerald-500/10 dark:bg-emerald-500/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${formData.equipment === eq ? t.textAccent + ' bg-black/5 dark:bg-white/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
                         >
                             {eq}
                         </button>
@@ -156,15 +156,15 @@ const ExerciseForm = ({ t, lang, formData, setFormData, originalData, onSave, on
         </div>
 
         {/* Type */}
-        <div>
+        <div className={openDropdown === 'type' ? 'relative z-[70]' : 'relative z-10'}>
           <label className={`body-md ${t.textMuted} mb-2 block`}>{lang?.exerciseType || 'Tipe Latihan'}</label>
           <div className="relative">
             <button 
                 onClick={(e) => { e.preventDefault(); setOpenDropdown(openDropdown === 'type' ? null : 'type'); }}
                 className={`relative z-[60] w-full body-lg font-bold p-3 px-4 rounded-xl flex items-center justify-between space-x-2 ${t.inputBg} ${t.textMain} border border-transparent focus:ring-2 focus:${t.ringAccent} transition-colors`}
             >
-                <span>{exerciseTypeLabels[formData.type]}</span>
-                <ChevronDown size={16} className={`transition-transform duration-200 ${openDropdown === 'type' ? 'rotate-180' : ''} ${t.textMuted}`} />
+                <span className="truncate flex-1 text-left min-w-0">{exerciseTypeLabels[formData.type]}</span>
+                <ChevronDown size={16} className={`transition-transform duration-200 shrink-0 ${openDropdown === 'type' ? 'rotate-180' : ''} ${t.textMuted}`} />
             </button>
             {openDropdown === 'type' && (
                 <div className={`absolute top-full right-0 left-0 -mt-3 pt-4 pb-1 rounded-b-2xl border ${t.border} border-t-0 ${t.bgCard} shadow-xl max-h-60 overflow-y-auto overflow-x-hidden custom-scrollbar z-[50] animate-in slide-in-from-top-2 origin-top`}>
@@ -176,7 +176,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, originalData, onSave, on
                                 setFormData(prev => ({ ...prev, type: val }));
                                 setOpenDropdown(null);
                             }}
-                            className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${formData.type === val ? t.textAccent + ' bg-emerald-500/10 dark:bg-emerald-500/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${formData.type === val ? t.textAccent + ' bg-black/5 dark:bg-white/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
                         >
                             {label}
                         </button>
@@ -189,15 +189,15 @@ const ExerciseForm = ({ t, lang, formData, setFormData, originalData, onSave, on
 
         <div className="grid grid-cols-[4fr_5fr] gap-3">
           {/* Level */}
-          <div className="w-full">
+          <div className={`w-full ${openDropdown === 'level' ? 'relative z-[70]' : 'relative z-10'}`}>
             <label className={`body-md ${t.textMuted} mb-2 block`}>Level Latihan</label>
             <div className="relative">
               <button 
                   onClick={(e) => { e.preventDefault(); setOpenDropdown(openDropdown === 'level' ? null : 'level'); }}
                   className={`relative z-[50] w-full body-lg font-bold p-3 px-4 rounded-xl flex items-center justify-between space-x-2 ${t.inputBg} ${t.textMain} border border-transparent focus:ring-2 focus:${t.ringAccent} transition-colors`}
               >
-                  <span>{levelLabels[formData.level] || 'Pemula'}</span>
-                  <ChevronDown size={16} className={`transition-transform duration-200 ${openDropdown === 'level' ? 'rotate-180' : ''} ${t.textMuted}`} />
+                  <span className="truncate flex-1 text-left min-w-0">{levelLabels[formData.level] || 'Pemula'}</span>
+                  <ChevronDown size={16} className={`transition-transform duration-200 shrink-0 ${openDropdown === 'level' ? 'rotate-180' : ''} ${t.textMuted}`} />
               </button>
               {openDropdown === 'level' && (
                   <div className={`absolute top-full right-0 left-0 -mt-3 pt-4 pb-1 rounded-b-2xl border ${t.border} border-t-0 ${t.bgCard} shadow-xl max-h-60 overflow-y-auto overflow-x-hidden custom-scrollbar z-[40] animate-in slide-in-from-top-2 origin-top`}>
@@ -209,7 +209,7 @@ const ExerciseForm = ({ t, lang, formData, setFormData, originalData, onSave, on
                                   setFormData(prev => ({ ...prev, level: val }));
                                   setOpenDropdown(null);
                               }}
-                              className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${formData.level === val ? t.textAccent + ' bg-emerald-500/10 dark:bg-emerald-500/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
+                              className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${formData.level === val ? t.textAccent + ' bg-black/5 dark:bg-white/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
                           >
                               {label}
                           </button>
@@ -357,6 +357,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
   const [searchQuery, setSearchQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState([]);
   const [equipFilter, setEquipFilter] = useState([]);
+  const [levelFilter, setLevelFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('popular');
   const [showFilters, setShowFilters] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -523,6 +524,11 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
       list = list.filter(ex => equipFilter.includes(ex.equipment));
     }
 
+    // Level filter
+    if (levelFilter !== 'all') {
+      list = list.filter(ex => (ex.level || 'beginner') === levelFilter);
+    }
+
     // (Active Gym Equipment Filter moved to gymFilteredLibrary)
 
     // Sort
@@ -542,7 +548,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
     }
 
     return list;
-  }, [gymFilteredLibrary, viewMode, showFavoritesOnly, searchQuery, muscleFilter, equipFilter, sortOrder, popularityScores]);
+  }, [gymFilteredLibrary, viewMode, showFavoritesOnly, searchQuery, muscleFilter, equipFilter, levelFilter, sortOrder, popularityScores]);
 
   // Pagination for performance (Render top 100 max)
   const displayedList = filteredList.slice(0, 100);
@@ -788,7 +794,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
             <button
               onClick={() => { setShowFilters(!showFilters); playSoundEffect('click', soundEnabled); }}
               className={`p-3 rounded-xl transition-all ${
-                showFilters || muscleFilter.length > 0 || equipFilter.length > 0
+                showFilters || muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter !== 'all'
                   ? `${t.bgAccent} text-white shadow-sm`
                   : `${t.inputBg} ${t.textMuted}`
               }`}
@@ -818,29 +824,50 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
 
               {/* Sort + Clear */}
               <div className={`flex items-center justify-between pt-3 mt-1 border-t ${t.border}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>
-                    {lang?.sortBy || 'Urutkan'}
-                  </span>
-                  <div className="relative">
-                    <select 
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      className={`px-3 py-1.5 rounded-lg ${t.inputBg} ${t.textMain} body-md outline-none appearance-none cursor-pointer pr-7`}
-                    >
-                      <option value="popular">Terpopuler</option>
-                      <option value="newest">{lang?.newest || 'Terbaru'}</option>
-                      <option value="az">A - Z</option>
-                      <option value="za">Z - A</option>
-                    </select>
-                    <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${t.textMuted}`} />
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>
+                      {lang?.sortBy || 'Urutkan'}
+                    </span>
+                    <div className="relative">
+                      <select 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                        className={`px-3 py-1.5 rounded-lg ${t.inputBg} ${t.textMain} body-md outline-none appearance-none cursor-pointer pr-7`}
+                      >
+                        <option value="popular">Terpopuler</option>
+                        <option value="newest">{lang?.newest || 'Terbaru'}</option>
+                        <option value="az">A - Z</option>
+                        <option value="za">Z - A</option>
+                      </select>
+                      <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${t.textMuted}`} />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>
+                      Level
+                    </span>
+                    <div className="relative">
+                      <select 
+                        value={levelFilter}
+                        onChange={(e) => setLevelFilter(e.target.value)}
+                        className={`px-3 py-1.5 rounded-lg ${t.inputBg} ${t.textMain} body-md outline-none appearance-none cursor-pointer pr-7`}
+                      >
+                        <option value="all">Semua</option>
+                        <option value="beginner">Pemula</option>
+                        <option value="intermediate">Menengah</option>
+                        <option value="expert">Mahir</option>
+                      </select>
+                      <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${t.textMuted}`} />
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                  {(muscleFilter.length > 0 || equipFilter.length > 0) && (
+                <div className="flex items-center gap-3 mt-2 sm:mt-0">
+                  {(muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter !== 'all') && (
                     <button
-                      onClick={() => { setMuscleFilter([]); setEquipFilter([]); }}
+                      onClick={() => { setMuscleFilter([]); setEquipFilter([]); setLevelFilter('all'); }}
                       className="text-[10px] font-black text-rose-500 hover:opacity-80"
                     >
                       Reset Filter

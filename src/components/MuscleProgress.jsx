@@ -193,16 +193,16 @@ export const MuscleProgress = ({ history, programs, exerciseLibrary, t, lang, th
             <div className="flex justify-between items-center mb-4">
                 <h3 className={`${t.textMain} font-black body-md uppercase tracking-wider`}>Progres Otot</h3>
                 
-                <div className="relative" ref={dropdownRef}>
+                <div className="relative z-[100]" ref={dropdownRef}>
                     <button 
                         onClick={() => { playSoundEffect('click', soundEnabled); setIsDropdownOpen(!isDropdownOpen); }}
-                        className={`body-sm font-bold p-2 pl-3 pr-2 rounded-xl flex items-center justify-between space-x-2 ${t.inputBg} ${t.textMain} border ${t.border} transition-colors`}
+                        className={`w-[135px] relative z-[60] text-[11px] font-black py-1.5 pl-3 pr-2 flex items-center justify-between space-x-1 ${t.inputBg} ${t.textMain} border ${t.border} ${isDropdownOpen ? 'rounded-t-xl border-b-transparent' : 'rounded-xl'} transition-colors`}
                     >
                         <span>{timeFilter === '1m' ? '1 Bulan Terakhir' : timeFilter === '3m' ? '3 Bulan Terakhir' : 'Keseluruhan'}</span>
-                        <ChevronDown size={14} className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={14} className={`transition-transform duration-200 flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isDropdownOpen && (
-                        <div className={`absolute top-full right-0 mt-2 w-44 rounded-xl border ${t.border} ${t.bgCard} shadow-lg overflow-hidden z-[60] animate-in zoom-in-95 origin-top-right`}>
+                        <div className={`absolute top-full left-0 w-full -mt-1 pt-1 pb-1 rounded-b-xl border ${t.border} border-t-0 ${t.bgCard} shadow-xl z-[100] animate-in slide-in-from-top-2 origin-top overflow-hidden`}>
                             {[
                                 { val: '1m', label: '1 Bulan Terakhir' },
                                 { val: '3m', label: '3 Bulan Terakhir' },
@@ -215,7 +215,7 @@ export const MuscleProgress = ({ history, programs, exerciseLibrary, t, lang, th
                                         setTimeFilter(opt.val);
                                         setIsDropdownOpen(false);
                                     }}
-                                    className={`w-full text-left px-4 py-3 body-sm font-bold transition-colors ${timeFilter === opt.val ? t.textAccent + ' bg-emerald-500/10 dark:bg-emerald-500/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    className={`w-full text-left px-3 py-2 text-[11px] font-black transition-colors ${timeFilter === opt.val ? t.textAccent + ' bg-black/5 dark:bg-white/10' : t.textMuted + ' hover:' + t.textMain + ' hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
                                     {opt.label}
                                 </button>
@@ -273,7 +273,7 @@ export const MuscleProgress = ({ history, programs, exerciseLibrary, t, lang, th
                         {radarData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <RadarChart cx="50%" cy="50%" outerRadius={isMobile ? "55%" : "70%"} data={radarData}>
-                                    <PolarGrid stroke={theme === 'dark' ? '#3f3f46' : '#e2e8f0'} />
+                                    <PolarGrid stroke={theme === 'dark' ? '#3f3f46' : '#cbd5e1'} />
                                     <PolarAngleAxis dataKey="muscle" tick={{ fill: theme === 'dark' ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: 700 }} />
                                     <Radar name="Skor Otot" dataKey="score" stroke={theme === 'dark' ? '#629bc4' : '#41759b'} fill={theme === 'dark' ? '#41759b' : '#41759b'} fillOpacity={0.6} />
                                     <Tooltip 

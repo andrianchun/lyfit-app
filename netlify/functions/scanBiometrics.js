@@ -13,8 +13,8 @@ exports.handler = async function (event, context) {
             return { statusCode: 400, body: JSON.stringify({ error: 'Image data is missing' }) };
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
+        const apiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2, process.env.GEMINI_API_KEY_3].filter(Boolean);
+        if (apiKeys.length === 0) {
             return { statusCode: 500, body: JSON.stringify({ error: 'Server API key missing' }) };
         }
 
@@ -69,54 +69,68 @@ For sleep, use "Hh Mm" format (e.g., "7h 30m").
 
         const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
         let apiResponse = null;
+        let success = false;
 
-        for (const model of modelsToTry) {
-            const options = {
-                hostname: 'generativelanguage.googleapis.com',
-                port: 443,
-                path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(payload)
-                }
-            };
+        for (const apiKey of apiKeys) {
+            for (const model of modelsToTry) {
+                const options = {
+                    hostname: 'generativelanguage.googleapis.com',
+                    port: 443,
+                    path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(payload)
+                    }
+                };
 
-            apiResponse = await new Promise((resolve, reject) => {
-                const req = https.request(options, (res) => {
-                    let data = '';
-                    res.on('data', (chunk) => { data += chunk; });
-                    res.on('end', () => {
-                        resolve({ statusCode: res.statusCode, body: data });
+                apiResponse = await new Promise((resolve, reject) => {
+                    const req = https.request(options, (res) => {
+                        let data = '';
+                        res.on('data', (chunk) => { data += chunk; });
+                        res.on('end', () => {
+                            resolve({ statusCode: res.statusCode, body: data });
+                        });
                     });
+                    req.on('error', (e) => reject(e));
+                    req.write(payload);
+                    req.end();
                 });
-                req.on('error', (e) => reject(e));
-                req.write(payload);
-                req.end();
-            });
 
-            if (apiResponse.statusCode === 200) {
-                break; // Berhasil, keluar dari loop
+                if (apiResponse.statusCode === 200) {
+                    success = true;
+                    break; // Berhasil, keluar dari loop model
+                }
+                
+                // Jika rate limit (429) atau API Key Invalid (403), ganti ke API KEY berikutnya (keluar dari loop model)
+                if (apiResponse.statusCode === 429 || apiResponse.statusCode === 403) {
+                    break; 
+                }
+                
+                // Jika error 503 (Unavailable) atau 404 (Not Found) atau 500 (Internal Server Error), lanjut ke model berikutnya
+                if (apiResponse.statusCode !== 503 && apiResponse.statusCode !== 404 && apiResponse.statusCode !== 500) {
+                     break; // Berhenti jika error lain yang tidak bisa difix dengan ganti model/key (misal 400 Bad Request)
+                }
             }
-            if (apiResponse.statusCode === 429) {
-                return { statusCode: 429, body: JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED' }) };
-            }
-            // Jika error 503 (Unavailable) atau 404 (Not Found), lanjut ke iterasi loop model berikutnya
-            if (apiResponse.statusCode !== 503 && apiResponse.statusCode !== 404) {
-                 break; // Berhenti jika error lain yang tidak bisa difix dengan ganti model
-            }
+            if (success) break; // Berhasil, keluar dari loop API Key
         }
 
-        if (apiResponse.statusCode !== 200) {
+        if (!success) {
+            if (apiResponse && apiResponse.statusCode === 429) {
+                return { statusCode: 429, body: JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED' }) };
+            }
+            
             let errMsg = 'Failed to call Gemini API';
             try {
-                const parsed = JSON.parse(apiResponse.body);
-                if (parsed.error && parsed.error.message) errMsg = parsed.error.message;
+                if (apiResponse && apiResponse.body) {
+                    const parsed = JSON.parse(apiResponse.body);
+                    if (parsed.error && parsed.error.message) errMsg = parsed.error.message;
+                }
             } catch (e) {}
             
             return {
-                statusCode: apiResponse.statusCode,
-                body: JSON.stringify({ error: errMsg, details: apiResponse.body })
+                statusCode: apiResponse ? apiResponse.statusCode : 500,
+                body: JSON.stringify({ error: errMsg, details: apiResponse ? apiResponse.body : 'No response' })
             };
         }
 

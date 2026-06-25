@@ -337,8 +337,8 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
            <div className="flex justify-between items-center mb-5 relative z-10">
                <div>
                    <h3 className={`h3 ${t.textMain}`}>Komposisi Tubuh</h3>
-                   {bioDataDate && bioDataDate !== activeDate && (
-                       <p className={`caption ${t.textMuted} mt-0.5`} style={{fontSize: '0.65rem'}}>Data dari: {new Date(bioDataDate).toLocaleDateString(language==='ID'?'id-ID':'en-US', { day: 'numeric', month: 'short' })}</p>
+                   {bioDataDate && (
+                       <p className={`caption ${t.textMuted} mt-0.5`} style={{fontSize: '0.65rem'}}>{bioDataDate === activeDate ? 'Hari ini: ' : 'Data dari: '}{new Date(bioDataDate).toLocaleDateString(language==='ID'?'id-ID':'en-US', { day: 'numeric', month: 'short' })}</p>
                    )}
                </div>
                <div className="flex items-center space-x-2">

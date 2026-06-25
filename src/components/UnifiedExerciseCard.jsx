@@ -44,8 +44,7 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
                 return null;
              }
           })()}
-          {isCustom && <div className="absolute bottom-3.5 right-[22px] text-emerald-500 text-[10px] font-black uppercase tracking-widest leading-none drop-shadow-lg z-10 pointer-events-none">CUSTOM</div>}
-      </div>
+        </div>
 
         {/* Info */}
         <div 
@@ -73,7 +72,7 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-1.5 pr-4 pl-2 py-4 flex-shrink-0 z-20">
+      <div className="relative flex items-center justify-center gap-1.5 pr-4 pl-2 py-4 flex-shrink-0 z-20">
         {actionButton ? actionButton : (
           <>
               <button
@@ -100,6 +99,11 @@ const UnifiedExerciseCard = ({ t, lang, ex, onEdit, onDelete, onToggleFavorite, 
                 </button>
             )}
           </>
+        )}
+        {isCustom && (
+          <div className={`absolute bottom-2.5 left-1/2 -translate-x-1/2 ml-1 ${t.bgAccent} text-white px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest leading-none shadow-sm pointer-events-none`}>
+            CUSTOM
+          </div>
         )}
       </div>
     </div>
