@@ -362,25 +362,25 @@ const DashboardModals = ({
                  ) : (
                     <div className="space-y-4">
                         {/* Group 1: General Activity */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div><label className={`block ${t.textMuted} mb-1`}>Langkah</label><SwipeInput language={lang?.id || 'ID'} value={formBio.steps || ''} onChange={(val) => setFormBio({...formBio, steps: val})} step={100} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.steps, "5000")} /></div>
-                            <div><label className={`block ${t.textMuted} mb-1`}>Energy Score</label><SwipeInput language={lang?.id || 'ID'} value={formBio.energyScore || ''} onChange={(val) => setFormBio({...formBio, energyScore: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.energyScore, "80")} /></div>
-                            <div><label className={`block ${t.textMuted} mb-1`}>Waktu Aktif (mnt)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.activeMinutes || ''} onChange={(val) => setFormBio({...formBio, activeMinutes: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.activeMinutes, "30")} /></div>
-                            <div><label className={`block ${t.textMuted} mb-1`}>Kalori Aktif (kcal)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.activityCalories || ''} onChange={(val) => setFormBio({...formBio, activityCalories: val})} step={10} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.activityCalories, "300")} /></div>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Langkah</label><SwipeInput language={lang?.id || 'ID'} value={formBio.steps || ''} onChange={(val) => setFormBio({...formBio, steps: val})} step={100} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.steps, "5000")} /></div>
+                            <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Energy Score</label><SwipeInput language={lang?.id || 'ID'} value={formBio.energyScore || ''} onChange={(val) => setFormBio({...formBio, energyScore: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.energyScore, "80")} /></div>
+                            <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Waktu Aktif (mnt)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.activeMinutes || ''} onChange={(val) => setFormBio({...formBio, activeMinutes: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.activeMinutes, "30")} /></div>
+                            <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Kalori Aktif (kcal)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.activityCalories || ''} onChange={(val) => setFormBio({...formBio, activityCalories: val})} step={10} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.activityCalories, "300")} /></div>
                         </div>
                         
                         {/* Group 2: Tidur & Tensi (Swipeable) */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2.5">
                             {/* Tidur */}
                             <div>
-                                <label className={`block ${t.textMuted} mb-1`}>Tidur (Jam/Menit)</label>
+                                <label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Tidur (Jam/Menit)</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="relative">
-                                        <SwipeInput language={lang?.id || 'ID'} value={sleepH || ''} onChange={handleSleepH} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center pr-4`} placeholder={ph(lastSleepH, "7")} />
+                                        <SwipeInput language={lang?.id || 'ID'} value={sleepH || ''} onChange={handleSleepH} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center pr-4`} placeholder={ph(lastSleepH, "7")} />
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold pointer-events-none">h</span>
                                     </div>
                                     <div className="relative">
-                                        <SwipeInput language={lang?.id || 'ID'} value={sleepM || ''} onChange={handleSleepM} step={5} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center pr-4`} placeholder={ph(lastSleepM, "0")} />
+                                        <SwipeInput language={lang?.id || 'ID'} value={sleepM || ''} onChange={handleSleepM} step={5} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center pr-4`} placeholder={ph(lastSleepM, "0")} />
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 font-bold pointer-events-none">m</span>
                                     </div>
                                 </div>
@@ -388,30 +388,30 @@ const DashboardModals = ({
 
                             {/* Tensi */}
                             <div>
-                                <label className={`block ${t.textMuted} mb-1`}>Tensi (Sys/Dia)</label>
+                                <label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Tensi (Sys/Dia)</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <SwipeInput language={lang?.id || 'ID'} value={bpSys || ''} onChange={handleBPSys} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(lastBpSys, "120")} />
-                                    <SwipeInput language={lang?.id || 'ID'} value={bpDia || ''} onChange={handleBPDia} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(lastBpDia, "80")} />
+                                    <SwipeInput language={lang?.id || 'ID'} value={bpSys || ''} onChange={handleBPSys} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(lastBpSys, "120")} />
+                                    <SwipeInput language={lang?.id || 'ID'} value={bpDia || ''} onChange={handleBPDia} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(lastBpDia, "80")} />
                                 </div>
                             </div>
                         </div>
 
                         {/* Group 3: Detak Jantung */}
                         <div>
-                            <label className={`block ${t.textMuted} mb-1`}>Detak Jantung (Avg / Min / Max)</label>
+                            <label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Detak Jantung (Avg / Min / Max)</label>
                             <div className="grid grid-cols-3 gap-2">
-                                <SwipeInput language={lang?.id || 'ID'} value={formBio.heartRate || ''} onChange={(val) => setFormBio({...formBio, heartRate: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.heartRate, "75")} />
-                                <SwipeInput language={lang?.id || 'ID'} value={formBio.minHeartRate || ''} onChange={(val) => setFormBio({...formBio, minHeartRate: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.minHeartRate, "60")} />
-                                <SwipeInput language={lang?.id || 'ID'} value={formBio.maxHeartRate || ''} onChange={(val) => setFormBio({...formBio, maxHeartRate: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.maxHeartRate, "100")} />
+                                <SwipeInput language={lang?.id || 'ID'} value={formBio.heartRate || ''} onChange={(val) => setFormBio({...formBio, heartRate: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.heartRate, "75")} />
+                                <SwipeInput language={lang?.id || 'ID'} value={formBio.minHeartRate || ''} onChange={(val) => setFormBio({...formBio, minHeartRate: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.minHeartRate, "60")} />
+                                <SwipeInput language={lang?.id || 'ID'} value={formBio.maxHeartRate || ''} onChange={(val) => setFormBio({...formBio, maxHeartRate: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.maxHeartRate, "100")} />
                             </div>
                         </div>
 
                         {/* Rekap Latihan Mingguan */}
                         <div className="mt-2 pt-4 border-t border-dashed border-zinc-700">
                             <span className={`block ${t.textAccent} mb-3 uppercase tracking-wider text-[10px] font-bold`}>Rekap Latihan Mingguan</span>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div><label className={`block ${t.textMuted} mb-1`}>Total Sesi (x)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weeklySessions || ''} onChange={(val) => setFormBio({...formBio, weeklySessions: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.weeklySessions, "3")} /></div>
-                                <div><label className={`block ${t.textMuted} mb-1`}>Durasi (Menit)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weeklyDuration || ''} onChange={(val) => setFormBio({...formBio, weeklyDuration: val})} step={10} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center`} placeholder={ph(bioData?.weeklyDuration, "120")} /></div>
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Total Sesi (x)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weeklySessions || ''} onChange={(val) => setFormBio({...formBio, weeklySessions: val})} step={1} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.weeklySessions, "3")} /></div>
+                                <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Durasi (Menit)</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weeklyDuration || ''} onChange={(val) => setFormBio({...formBio, weeklyDuration: val})} step={10} min={0} soundEnabled={soundEnabled} className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} py-2 px-3 rounded-lg outline-none font-bold text-sm text-center`} placeholder={ph(bioData?.weeklyDuration, "120")} /></div>
                             </div>
                         </div>
                     </div>
