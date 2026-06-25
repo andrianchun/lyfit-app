@@ -284,7 +284,7 @@ const DashboardModals = ({
                  </div>
               </div>
 
-              <div className="mb-4 shrink-0 px-5">
+              <div className="mb-2 shrink-0 px-5">
                  <div className={`relative flex w-full p-1.5 rounded-full ${t.btnBg}`}>
                      <div className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-full transition-transform duration-300 ease-out ${t.bgAccent} shadow-sm`} style={{ transform: manualTab === 'komposisi' ? 'translateX(0)' : 'translateX(100%)', left: '6px' }}></div>
                      
@@ -300,7 +300,7 @@ const DashboardModals = ({
                   </div>
               )}
 
-              <div className="flex-1 overflow-y-auto space-y-4 body-md pb-6 hide-scrollbar px-5 pt-2">
+              <div className="flex-1 overflow-y-auto space-y-4 body-md pb-6 hide-scrollbar px-5 pt-0">
                  {manualTab === 'komposisi' ? (
                    <div className="grid grid-cols-2 gap-2.5">
                          <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Berat Badan ({isImp ? 'lbs' : 'kg'})</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weight === 0 ? '' : (isImp ? Math.round(formBio.weight * 2.20462 * 10)/10 : formBio.weight)} onChange={(val) => {
@@ -418,7 +418,7 @@ const DashboardModals = ({
                  )}
               </div>
 
-              <div className="px-5 pb-6 pt-4 mt-auto shrink-0 border-t border-dashed border-zinc-500/30">
+              <div className="px-5 pb-5 pt-2 mt-auto shrink-0">
                   <div className="flex gap-3">
                       <button onClick={() => setShowManualModal(false)} className={`w-1/3 py-3 rounded-xl font-bold body-lg ${t.textMuted} ${t.btnBg} active:scale-[0.98] transition-all`}>Batal</button>
                       <button onClick={handleSaveManualData} className={`flex-1 py-3 rounded-xl font-black body-lg text-white ${t.bgAccent} shadow-lg shadow-black/20 active:scale-[0.98] transition-all`}>Simpan</button>
