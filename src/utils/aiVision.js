@@ -67,14 +67,16 @@ Expected keys:
                     throw new Error('RATE_LIMIT_EXCEEDED');
                 }
                 
-                // Coba parse JSON, kalau gagal berarti server kirim plain text (misal HTML 500 error)
-                let errorMsg = 'Unknown server error';
+                // Baca sebagai text sekali saja (mencegah 'body stream already read' error)
+                const rawText = await res.text();
+                let errorMsg = `Server Error (${res.status}): ${rawText.substring(0, 50)}...`;
+                
                 try {
-                    const errData = await res.json();
+                    // Coba parse jadi JSON, kalau valid dan ada error message, pakai itu
+                    const errData = JSON.parse(rawText);
                     if (errData && errData.error) errorMsg = errData.error;
                 } catch (parseErr) {
-                    const rawText = await res.text();
-                    errorMsg = `Server Error (${res.status}): ${rawText.substring(0, 50)}...`;
+                    // Biarkan errorMsg sebagai plain text jika bukan JSON
                 }
                 throw new Error(errorMsg);
             }
