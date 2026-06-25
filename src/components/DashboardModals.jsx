@@ -31,11 +31,40 @@ const DashboardModals = ({
       playSoundEffect('click', soundEnabled);
 
       try {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = async () => {
-              const base64Data = reader.result.split(',')[1];
-              const mimeType = file.type;
+          // Kompres gambar menggunakan Canvas agar tidak melebihi limit 6MB Netlify Payload
+          const img = new Image();
+          const objectUrl = URL.createObjectURL(file);
+          img.src = objectUrl;
+
+          img.onload = async () => {
+              URL.revokeObjectURL(objectUrl);
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 1000;
+              const MAX_HEIGHT = 1000;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height) {
+                  if (width > MAX_WIDTH) {
+                      height = Math.round(height * (MAX_WIDTH / width));
+                      width = MAX_WIDTH;
+                  }
+              } else {
+                  if (height > MAX_HEIGHT) {
+                      width = Math.round(width * (MAX_HEIGHT / height));
+                      height = MAX_HEIGHT;
+                  }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              // Konversi ke base64 JPEG kualitas 70% (ukuran jadi jauh lebih kecil)
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              const base64Data = dataUrl.split(',')[1];
+              const mimeType = 'image/jpeg';
 
               try {
                   const aiData = await extractBiometricsFromImage(base64Data, mimeType, userGeminiApiKey);
@@ -58,6 +87,7 @@ const DashboardModals = ({
                   if (err.message === 'RATE_LIMIT_EXCEEDED') {
                       setScanError('Server penuh. Masukkan API Key pribadimu di Pengaturan untuk bypass limit.');
                   } else {
+
                       setScanError(err.message || 'Gagal membaca gambar');
                   }
               } finally {

@@ -66,8 +66,17 @@ Expected keys:
                 if (res.status === 429) {
                     throw new Error('RATE_LIMIT_EXCEEDED');
                 }
-                const errData = await res.json();
-                throw new Error(errData.error || 'Unknown server error');
+                
+                // Coba parse JSON, kalau gagal berarti server kirim plain text (misal HTML 500 error)
+                let errorMsg = 'Unknown server error';
+                try {
+                    const errData = await res.json();
+                    if (errData && errData.error) errorMsg = errData.error;
+                } catch (parseErr) {
+                    const rawText = await res.text();
+                    errorMsg = `Server Error (${res.status}): ${rawText.substring(0, 50)}...`;
+                }
+                throw new Error(errorMsg);
             }
 
             return await res.json();
