@@ -1,7 +1,26 @@
-import React from 'react';
-import { User, Settings, Users, WifiOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Settings, WifiOff, Bell } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
+import NotificationPanel from './NotificationPanel';
 
-const Header = ({ t, theme, user, showSettings, setShowSettings, setShowProfileModal, soundEnabled, playSoundEffect, activeTab, setActiveTab, setConfirmModal, isOffline }) => {
+const Header = ({ t, theme, user, showSettings, setShowSettings, setShowProfileModal, soundEnabled, playSoundEffect, activeTab, setActiveTab, setConfirmModal, isOffline, onNotifClick }) => {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const q = query(collection(db, 'notifications'), where('toUserId', '==', user.uid), where('read', '==', false));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setUnreadCount(snap.docs.length);
+      // Optional: if we want to show a browser push notification, we could do it here
+      // But we will stick to in-app bell badge for now as requested
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  const isDark = theme === 'dark';
+
   return (
     <header 
       className={`sticky top-0 z-40 ${t?.navBg || 'bg-white'} border-b ${t?.border || 'border-gray-200'} px-4 flex justify-between items-center transition-colors duration-300`}
@@ -33,6 +52,23 @@ const Header = ({ t, theme, user, showSettings, setShowSettings, setShowProfileM
             <WifiOff size={20} strokeWidth={2} />
           </button>
         )}
+        
+        {/* Tombol Notifikasi */}
+        {user && (
+          <button
+            onClick={() => { if(playSoundEffect) playSoundEffect('click', soundEnabled); setShowNotifications(true); }}
+            className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-95 ${t?.btnBg || 'bg-gray-100'} ${t?.textMuted || 'text-gray-500'} hover:${t?.textAccent || 'text-sky-400'}`}
+            title="Notifikasi"
+          >
+            <Bell size={22} strokeWidth={2} />
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Tombol Settings */}
         <button
           onClick={() => { if(playSoundEffect) playSoundEffect('click', soundEnabled); setShowSettings(true); }}
@@ -62,6 +98,15 @@ const Header = ({ t, theme, user, showSettings, setShowSettings, setShowProfileM
         </button>
       </div>
 
+      {showNotifications && (
+        <NotificationPanel
+          user={user}
+          isDark={isDark}
+          t={t}
+          onClose={() => setShowNotifications(false)}
+          onNotifClick={onNotifClick}
+        />
+      )}
     </header>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, GripVertical, ArrowUp, ArrowDown, Clock, Link as LinkIcon, X, Dumbbell, ChevronRight, ChevronDown, ChevronUp, Copy, Sparkles, FolderOpen, Trash2, CheckCircle2, Calendar, Edit2, ArrowLeftRight } from 'lucide-react';
+import { Plus, GripVertical, ArrowUp, ArrowDown, Clock, Link as LinkIcon, X, Dumbbell, ChevronRight, ChevronDown, ChevronUp, Copy, Sparkles, FolderOpen, Trash2, CheckCircle2, Calendar, Edit2, ArrowLeftRight, Share2 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,6 +7,8 @@ import { formatTarget } from '../data/constants';
 import { playSoundEffect } from '../utils/audio';
 import SwipeInput from '../components/SwipeInput';
 import AlternativeExerciseModal from '../components/AlternativeExerciseModal';
+import CreatePostModal from '../components/CreatePostModal';
+import useDialog from '../hooks/useDialog';
 
 const PlanNameInput = ({ initialValue, onSave, className, placeholder }) => {
   const [val, setVal] = useState(initialValue);
@@ -123,9 +125,10 @@ const SortableExerciseItem = ({ ex, prevEx, idx, routineId, t, lang, soundEnable
   );
 };
 
-const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseLibrary, soundEnabled, setActiveAddModalTarget, saveStateToHistory, openQuestionnaire, activePlanIds = [], setActivePlanIds, gymProfiles, focusRoutineId, setFocusRoutineId }) => {
+const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, user, exerciseLibrary, soundEnabled, setActiveAddModalTarget, saveStateToHistory, openQuestionnaire, activePlanIds = [], setActivePlanIds, gymProfiles, focusRoutineId, setFocusRoutineId }) => {
   
   const isDark = t.bgCard !== 'bg-white';
+  const { dialog, showAlert } = useDialog(isDark);
   const [expandedRoutineId, setExpandedRoutineId] = useState(null);
 
   useEffect(() => {
@@ -148,6 +151,7 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
   const [showAlternativeModal, setShowAlternativeModal] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null);
   const [routineIdForAlt, setRoutineIdForAlt] = useState(null);
+  const [pendingShareProgram, setPendingShareProgram] = useState(null);
 
   const handleSelectAlternative = (newEx) => {
     playSoundEffect('success', soundEnabled);
@@ -660,6 +664,17 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
                           Gym: {gymProfiles?.find(g => g.id === group.targetGym)?.name || group.targetGym}
                         </span>
                       )}
+                      {planId.startsWith('custom') && (
+                        <span className={`px-2 py-0.5 text-[10px] font-black uppercase rounded-md ${t.bgAccentSoft} ${t.textAccent}`}>
+                          Custom
+                        </span>
+                      )}
+                      {group.source === 'community' && group.sharedBy && (
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md flex items-center gap-1 ${isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          dari @{group.sharedBy}
+                        </span>
+                      )}
                       <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-md ${t.inputBg} ${t.textMuted}`}>
                         {group.routines.length} Hari
                       </span>
@@ -673,26 +688,44 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
                 </button>
               </div>
 
-              <button 
-                onClick={() => { 
-                  playSoundEffect('success', soundEnabled); 
-                  if (isActive) {
-                    setActivePlanIds(activePlanIds.filter(id => id !== planId));
-                  } else {
-                    setActivePlanIds([...activePlanIds, planId]); 
-                    setTimeout(() => {
-                      const el = document.getElementById(`plan-${layout}-${planId}`);
-                      if (el) {
-                        const y = el.getBoundingClientRect().top + window.scrollY - 80;
-                        window.scrollTo({ top: y, behavior: 'smooth' });
+              <div className="flex gap-2 relative z-10 w-full mt-3">
+                <button 
+                  onClick={() => { 
+                    playSoundEffect('success', soundEnabled); 
+                    if (isActive) {
+                      setActivePlanIds(activePlanIds.filter(id => id !== planId));
+                    } else {
+                      setActivePlanIds([...activePlanIds, planId]); 
+                      setTimeout(() => {
+                        const el = document.getElementById(`plan-${layout}-${planId}`);
+                        if (el) {
+                          const y = el.getBoundingClientRect().top + window.scrollY - 80;
+                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                      }, 100);
+                    }
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${isActive ? `${t.bgAccent} text-white shadow-md border border-transparent` : `backdrop-blur-md border ${isDark ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white/70 hover:text-white' : 'bg-white/60 hover:bg-white/80 border-white/50 shadow-sm text-gray-500 hover:text-gray-900'}`}`}
+                >
+                  {isActive ? <><CheckCircle2 size={18} /> Program Aktif</> : 'Aktifkan'}
+                </button>
+                {planId.startsWith('custom') && (
+                  <button 
+                    onClick={async () => {
+                      playSoundEffect('click', soundEnabled);
+                      if (user) {
+                        setPendingShareProgram(group);
+                      } else {
+                        await showAlert('Kamu harus login untuk membagikan program.', { type: 'info' });
                       }
-                    }, 100);
-                  }
-                }}
-                className={`w-full py-3 rounded-xl font-black text-sm transition-all active:scale-95 flex items-center justify-center gap-2 relative z-10 ${isActive ? `${t.bgAccent} text-white shadow-md border border-transparent` : `backdrop-blur-md border ${isDark ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white/70 hover:text-white' : 'bg-white/60 hover:bg-white/80 border-white/50 shadow-sm text-gray-500 hover:text-gray-900'}`}`}
-              >
-                {isActive ? <><CheckCircle2 size={18} /> Program Aktif</> : 'Aktifkan'}
-              </button>
+                    }}
+                    className={`px-4 py-3 rounded-xl transition-all flex items-center justify-center backdrop-blur-md border ${isDark ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white/70 hover:text-white' : 'bg-white/60 hover:bg-white/80 border-white/50 shadow-sm text-gray-500 hover:text-gray-900'}`}
+                    title="Bagikan ke Komunitas"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* ACCORDION CONTENT */}
@@ -833,6 +866,35 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, exerciseL
         onSelectAlternative={handleSelectAlternative}
         t={t} lang={lang} soundEnabled={soundEnabled}
       />
+
+      {pendingShareProgram && (
+        <CreatePostModal
+          user={user}
+          theme={t.bgCard !== 'bg-white' ? 'dark' : 'light'}
+          postDataOverrides={{
+            type: 'template',
+            programName: pendingShareProgram.name || pendingShareProgram.planName || 'Custom Program',
+            programData: {
+              name: pendingShareProgram.name || pendingShareProgram.planName || 'Custom Program',
+              planName: pendingShareProgram.planName || 'Custom',
+              routines: (pendingShareProgram.routines || []).map(r => ({
+                name: r.name,
+                exercises: (r.exercises || []).map(e => ({ name: e.name })),
+              })),
+              exercises: pendingShareProgram.routines
+                ? pendingShareProgram.routines.flatMap(r => (r.exercises || []).map(e => ({ name: e.name })))
+                : (pendingShareProgram.exercises || []).map(e => ({ name: e.name })),
+              restTime: pendingShareProgram.restTime || 90,
+              userName: user?.name || user?.email?.split('@')[0] || 'Anonim',
+            }
+          }}
+          onClose={async (success) => {
+            setPendingShareProgram(null);
+            if (success) await showAlert('Program berhasil dibagikan ke komunitas!', { type: 'success', title: 'Berhasil Dibagikan' });
+          }}
+        />
+      )}
+      {dialog}
     </div>
   );
 };

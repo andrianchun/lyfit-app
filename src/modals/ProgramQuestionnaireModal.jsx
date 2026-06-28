@@ -5,7 +5,7 @@ import { playSoundEffect } from '../utils/audio';
 import GymManagerModal from '../components/GymManagerModal';
 import { generateDynamicWorkout } from '../utils/aiGenerator';
 
-const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, soundEnabled, gymProfiles, setGymProfiles, activeGymId, setActiveGymId, exerciseLibrary }) => {
+const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, soundEnabled, gymProfiles, setGymProfiles, activeGymId, setActiveGymId, exerciseLibrary, units }) => {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({
     gender: null,
@@ -24,6 +24,8 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
   const [showGymManager, setShowGymManager] = useState(false);
 
   const isDark = t.bgCard !== 'bg-white';
+  const isImp = units?.weight === 'lbs';
+  const isImpHeight = units?.height === 'ft';
 
   // Reset state when opened
   useEffect(() => {
@@ -86,15 +88,19 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
 
   const handleAccept = () => {
     playSoundEffect('success', soundEnabled);
+    const finalWeight = isImp ? Number((answers.weight / 2.20462).toFixed(1)) : Number(answers.weight);
+    const finalTargetWeight = isImp ? Number((answers.targetWeight / 2.20462).toFixed(1)) : Number(answers.targetWeight);
+    const finalHeight = isImpHeight ? Math.round((Number(answers.heightFt) * 12 + Number(answers.heightIn)) * 2.54) : Number(answers.height);
+
     onComplete({ 
         ...recommendedPlan, 
         gymProfileId: answers.equipment,
         biometrics: {
             gender: answers.gender,
             dob: answers.dob,
-            height: answers.height,
-            weight: answers.weight,
-            targetWeight: answers.targetWeight
+            height: finalHeight,
+            weight: finalWeight,
+            targetWeight: finalTargetWeight
         }
     });
     onClose();
@@ -266,7 +272,7 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
                   {steps[step].title}
                 </h2>
                 {step === 5 && <p className={`text-sm font-medium mt-2 ${!isDark ? 'text-black/80' : 'text-slate-300'}`}>Pilih hari sesuai jadwal luang kamu.</p>}
-                {step === 0 && <p className={`text-sm font-medium mt-2 ${!isDark ? 'text-black/80' : 'text-slate-300'}`}>Koneksikan data kesehatan dari HP-mu.</p>}
+                {step === 0 && <p className={`text-sm font-medium mt-2 ${!isDark ? 'text-black/80' : 'text-slate-300'}`}>Koneksikan data kesehatan dengan akunmu.</p>}
               </div>
 
               {/* PROGRESS BAR */}
@@ -282,17 +288,27 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
 
               {step === 0 ? (
                 // CUSTOM SYNC SELECTOR
-                <div className="flex flex-col pb-2 space-y-4">
+                <div className="flex flex-col pb-2 space-y-3">
                   <button
                     onClick={() => {
                         playSoundEffect('click', soundEnabled);
                         setStep(step + 1);
                     }}
-                    className={`w-full p-4 rounded-2xl border-2 backdrop-blur-md transition-all duration-200 active:scale-[0.98] group flex flex-col items-center justify-center border-sky-500/50 bg-sky-500/10 hover:bg-sky-500/20`}
+                    className={`w-full p-4 rounded-2xl border-2 transition-all duration-200 active:scale-[0.98] group flex flex-col items-center justify-center ${t.borderAccent} ${t.bgAccentSoft} hover:opacity-80`}
                   >
-                    <Heart size={32} className="text-sky-500 mb-2" />
-                    <h4 className={`font-bold text-base text-sky-500 mb-1`}>Connect Health Connect / Apple Health</h4>
-                    <p className={`text-xs font-medium text-sky-400/80 text-center`}>Sync otomatis data tinggi & berat badanmu (Segera Hadir di Native App).</p>
+                    <h4 className={`font-bold text-base ${t.textAccent} mb-1`}>Health Connect</h4>
+                    <p className={`text-[11px] font-medium ${t.textMuted} text-center`}>Sync otomatis tinggi & berat badan (Segera Hadir).</p>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                        playSoundEffect('click', soundEnabled);
+                        setStep(step + 1);
+                    }}
+                    className={`w-full p-4 rounded-2xl border-2 transition-all duration-200 active:scale-[0.98] group flex flex-col items-center justify-center ${t.borderAccent} ${t.bgAccentSoft} hover:opacity-80`}
+                  >
+                    <h4 className={`font-bold text-base ${t.textAccent} mb-1`}>Apple Health</h4>
+                    <p className={`text-[11px] font-medium ${t.textMuted} text-center`}>Sync otomatis tinggi & berat badan (Segera Hadir).</p>
                   </button>
                   
                   <button
@@ -300,9 +316,9 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
                         playSoundEffect('click', soundEnabled);
                         setStep(step + 1);
                     }}
-                    className={`w-full text-center p-4 rounded-2xl border-2 backdrop-blur-md transition-all duration-200 active:scale-[0.98] ${isDark ? 'border-transparent bg-white/5 shadow-none' : 'border-white/50 bg-white/60 shadow-sm'} hover:${t.bgAccentSoft}`}
+                    className={`w-full text-center p-3 mt-1 rounded-2xl border-2 transition-all duration-200 active:scale-[0.98] border-transparent ${t.inputBg} hover:opacity-80`}
                   >
-                    <h4 className={`font-bold text-base ${!isDark ? 'text-black' : t.textMain}`}>Isi Manual</h4>
+                    <h4 className={`font-bold text-sm ${!isDark ? 'text-black' : t.textMain}`}>Lewati</h4>
                   </button>
                 </div>
               ) : step === 1 ? (
@@ -327,20 +343,36 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
                 // CUSTOM BIOMETRICS
                 <div className="flex flex-col pb-2 space-y-4">
                   <div>
-                      <label className={`text-sm font-bold ${!isDark ? 'text-black' : t.textMain} mb-2 block`}>Tinggi Badan (cm)</label>
-                      <input type="number" placeholder="170" value={answers.height} onChange={(e) => setAnswers(prev => ({...prev, height: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
+                      <label className={`text-sm font-bold ${!isDark ? 'text-black' : t.textMain} mb-2 block`}>Tinggi Badan ({units?.height || 'cm'})</label>
+                      {isImpHeight ? (
+                          <div className="grid grid-cols-2 gap-3">
+                              <div className="relative">
+                                  <input type="number" placeholder="5" value={answers.heightFt || ''} onChange={(e) => setAnswers(prev => ({...prev, heightFt: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
+                                  <span className={`absolute right-4 top-4 font-bold ${t.textMuted}`}>ft</span>
+                              </div>
+                              <div className="relative">
+                                  <input type="number" placeholder="7" value={answers.heightIn || ''} onChange={(e) => setAnswers(prev => ({...prev, heightIn: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
+                                  <span className={`absolute right-4 top-4 font-bold ${t.textMuted}`}>in</span>
+                              </div>
+                          </div>
+                      ) : (
+                          <input type="number" placeholder="170" value={answers.height || ''} onChange={(e) => setAnswers(prev => ({...prev, height: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
+                      )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                       <div>
-                          <label className={`text-sm font-bold ${!isDark ? 'text-black' : t.textMain} mb-2 block`}>Berat (kg)</label>
-                          <input type="number" placeholder="70" value={answers.weight} onChange={(e) => setAnswers(prev => ({...prev, weight: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
+                          <label className={`text-sm font-bold ${!isDark ? 'text-black' : t.textMain} mb-2 block`}>Berat ({units?.weight || 'kg'})</label>
+                          <input type="number" placeholder={isImp ? "150" : "70"} value={answers.weight || ''} onChange={(e) => setAnswers(prev => ({...prev, weight: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
                       </div>
                       <div>
-                          <label className={`text-sm font-bold ${!isDark ? 'text-black' : t.textMain} mb-2 block`}>Target (kg)</label>
-                          <input type="number" placeholder="65" value={answers.targetWeight} onChange={(e) => setAnswers(prev => ({...prev, targetWeight: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
+                          <label className={`text-sm font-bold ${!isDark ? 'text-black' : t.textMain} mb-2 block`}>Target ({units?.weight || 'kg'})</label>
+                          <input type="number" placeholder={isImp ? "140" : "65"} value={answers.targetWeight || ''} onChange={(e) => setAnswers(prev => ({...prev, targetWeight: e.target.value}))} className={`w-full p-4 rounded-xl font-bold ${t.inputBg} ${t.textMain} border-none outline-none focus:ring-2 focus:ring-sky-500`} />
                       </div>
                   </div>
-                  <button onClick={() => { if(answers.height && answers.weight && answers.targetWeight) setStep(step + 1); }} disabled={!answers.height || !answers.weight || !answers.targetWeight} className={`w-full mt-4 py-3 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${answers.height && answers.weight && answers.targetWeight ? `${t.bgAccent} text-white hover:opacity-90` : `${t.inputBg} ${t.textMuted} opacity-50 cursor-not-allowed`}`}>
+                  <button onClick={() => { 
+                      const isHeightValid = isImpHeight ? (answers.heightFt && answers.heightIn) : answers.height;
+                      if(isHeightValid && answers.weight && answers.targetWeight) setStep(step + 1); 
+                    }} disabled={(isImpHeight ? (!answers.heightFt || !answers.heightIn) : !answers.height) || !answers.weight || !answers.targetWeight} className={`w-full mt-4 py-3 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${((isImpHeight ? (answers.heightFt && answers.heightIn) : answers.height) && answers.weight && answers.targetWeight) ? `${t.bgAccent} text-white hover:opacity-90` : `${t.inputBg} ${t.textMuted} opacity-50 cursor-not-allowed`}`}>
                     Lanjut <ChevronRight size={20} />
                   </button>
                 </div>

@@ -45,52 +45,26 @@ const EmptyWorkoutState = ({
       ) : (
         <>
           <h2 className="h2 mb-6">Belum Ada Jadwal</h2>
-          {!showProgramSelect ? (
-            <div className="space-y-3">
-              <button 
-                onClick={() => { playSoundEffect('click', soundEnabled); setActiveTab('calendar'); }} 
-                className={`w-full py-3 rounded-xl body-lg font-bold bg-black/5 dark:bg-white/5 border ${t.border} hover:bg-black/10 transition-colors`}
-              >
-                Atur di Kalender
-              </button>
-              <button 
-                onClick={() => { playSoundEffect('click', soundEnabled); setShowProgramSelect(true); }} 
-                className={`w-full py-3 rounded-xl body-lg font-bold ${t.bgAccentSoft} ${t.textAccent} border ${t.borderAccentSoft} hover:opacity-80 transition-opacity`}
-              >
-                Pilih Program
-              </button>
-              <button 
-                onClick={handleAddAdhocSession} 
-                className={`w-full py-3 rounded-xl body-lg font-bold bg-black/5 dark:bg-white/5 border ${t.border} hover:bg-black/10 transition-colors`}
-              >
-                Pilih Latihan Ekstra
-              </button>
-            </div>
-          ) : (
-            <div className={`p-4 rounded-2xl bg-black/5 dark:bg-white/5 border ${t.border} animate-in fade-in text-left`}>
-              <div className="flex justify-between items-center mb-3">
-                <span className="body-lg font-bold">Pilih Program Latihan:</span>
-                <button 
-                  onClick={() => setShowProgramSelect(false)} 
-                  className="p-1 hover:bg-white/10 rounded-lg"
-                >
-                  <X size={16}/>
-                </button>
-              </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {programs.filter(p => activePlanIds.includes(p.planId || 'custom')).map(p => (
-                  <button 
-                    key={p.id} 
-                    onClick={() => handleAddProgramToToday(p)}
-                    className={`w-full p-3 rounded-xl border ${t.border} text-left body-lg font-bold hover:${t.bgAccentSoft} hover:${t.textAccent} transition-colors flex justify-between items-center`}
-                  >
-                    {p.name}
-                    <Plus size={16} className="opacity-50" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="space-y-3">
+            <button 
+              onClick={() => { playSoundEffect('click', soundEnabled); setActiveTab('calendar'); }} 
+              className={`w-full py-3 rounded-xl body-lg font-bold bg-black/5 dark:bg-white/5 border ${t.border} hover:bg-black/10 transition-colors`}
+            >
+              Atur di Kalender
+            </button>
+            <button 
+              onClick={() => { playSoundEffect('click', soundEnabled); setActiveTab('program'); }} 
+              className={`w-full py-3 rounded-xl body-lg font-bold ${t.bgAccentSoft} ${t.textAccent} border ${t.borderAccentSoft} hover:opacity-80 transition-opacity`}
+            >
+              Pilih Program
+            </button>
+            <button 
+              onClick={handleAddAdhocSession} 
+              className={`w-full py-3 rounded-xl body-lg font-bold bg-black/5 dark:bg-white/5 border ${t.border} hover:bg-black/10 transition-colors`}
+            >
+              Pilih Latihan Ekstra
+            </button>
+          </div>
         </>
       )}
       </div>

@@ -13,10 +13,10 @@ const DashboardModals = ({
   t, lang, showSyncModal, setShowSyncModal, connectedApps, handleToggleApp,
   showManualModal, setShowManualModal, manualTab, setManualTab, 
   modalDate, setModalDate, formBio, setFormBio, bioData,
-  handleSaveManualData, handleDeleteBioData, soundEnabled, unitSystem, setConfirmModal,
+  handleSaveManualData, handleDeleteBioData, soundEnabled, units, setConfirmModal,
   userGeminiApiKey
 }) => {
-  const isImp = unitSystem === 'imperial';
+  const isImp = units?.weight === 'lbs';
 
   const [authSim, setAuthSim] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -310,7 +310,7 @@ const DashboardModals = ({
               <div className="flex-1 overflow-hidden space-y-4 body-md pb-2 px-5 pt-0">
                  {manualTab === 'komposisi' ? (
                    <div className="grid grid-cols-2 gap-2.5">
-                         <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Berat Badan ({isImp ? 'lbs' : 'kg'})</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weight === 0 ? '' : (isImp ? Math.round(formBio.weight * 2.20462 * 10)/10 : formBio.weight)} onChange={(val) => {
+                         <div><label className={`block ${t.textMuted} text-xs mb-0.5 truncate`}>Berat Badan ({units?.weight || 'kg'})</label><SwipeInput language={lang?.id || 'ID'} value={formBio.weight === 0 ? '' : (isImp ? Math.round(formBio.weight * 2.20462 * 10)/10 : formBio.weight)} onChange={(val) => {
                              const wKg = isImp ? Number((val / 2.20462).toFixed(2)) : val;
                              let newBmi = formBio.bmi;
                              let newHeight = formBio.height;

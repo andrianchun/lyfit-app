@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Camera, Image, Download, Share2, Loader2, ChevronRight, ChevronLeft, Footprints, Clock, Utensils, Flame, Moon, Zap, Activity, HeartPulse, Wind, Dumbbell, Trash2 } from 'lucide-react';
+import { Camera, Image, Download, Share2, Loader2, ChevronRight, ChevronLeft, Footprints, Clock, Utensils, Flame, Moon, Zap, Activity, HeartPulse, Wind, Dumbbell, Trash2, Globe } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../firebase';
@@ -9,9 +9,11 @@ import { getLocalYMD } from '../data/constants';
 import DashboardChart from './DashboardChart';
 import ProgressTab from '../pages/ProgressTab';
 import { MuscleProgress } from './MuscleProgress';
+import { shareWorkoutToFeed } from '../utils/communityApi';
+import CreatePostModal from './CreatePostModal';
 let globalTemplateIndex = 0; // default to bodycomp
 
-export default function ShareCardGenerator({ user, setUser, t, theme, history, activityTargets, programs, exerciseLibrary, lang, language, soundEnabled, playSoundEffect, selectedDate, unitSystem, activePlanIds }) {
+export default function ShareCardGenerator({ user, setUser, t, theme, history, activityTargets, programs, exerciseLibrary, lang, language, soundEnabled, playSoundEffect, selectedDate, units, activePlanIds }) {
     const cardRef = useRef(null);
     const fileInputRef = useRef(null);
     const galleryInputRef = useRef(null);
@@ -20,6 +22,10 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
     const [isUploadingBg, setIsUploadingBg] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+    
+    // Staging post modal state
+    const [pendingShareFiles, setPendingShareFiles] = useState(null);
+    const [pendingWorkoutData, setPendingWorkoutData] = useState(null);
     
     // Toast state
     const [toastMsg, setToastMsg] = useState('');
@@ -195,7 +201,7 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
     };
 
     // Helpers
-    const isImp = unitSystem === 'imperial';
+    const isImp = units?.weight === 'lbs';
     const formatNumber = (num) => {
         if (num === undefined || num === null) return '-';
         return Number(num).toLocaleString('id-ID');
@@ -475,6 +481,58 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
         setIsUploadingBg(false);
     };
 
+    const handleShareToCommunity = async () => {
+        if (!cardRef.current) return;
+        
+        setIsSharing(true);
+        const files = [];
+        const originalIndex = templateIndex;
+        
+        try {
+            for (let i = 0; i < templates.length; i++) {
+                setTemplateIndex(i);
+                setToastMsg(`Menyiapkan ${i + 1}/${templates.length}...`);
+                
+                // Wait for React to render the new template
+                await new Promise(resolve => setTimeout(resolve, 80));
+                
+                const canvas = await html2canvas(cardRef.current, {
+                    scale: 1.5, // Reduced scale for faster generation 
+                    useCORS: true,
+                    backgroundColor: null,
+                    logging: false,
+                    scrollY: -window.scrollY,
+                    windowWidth: document.documentElement.offsetWidth,
+                    windowHeight: document.documentElement.offsetHeight,
+                    ignoreElements: (element) => element.classList.contains('ignore-download')
+                });
+                
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                if (blob) {
+                    files.push(new File([blob], `LyFit-${templates[i]}-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+                }
+            }
+            
+            setTemplateIndex(originalIndex);
+            
+            const workoutData = {
+                type: 'workout_log',
+                programName: "Ringkasan Aktivitas",
+                duration: workoutsList.length > 0 ? getWorkoutDurationMins(workoutsList[0]) + ' m' : '0 m',
+                totalVolume: workoutsList.length > 0 ? (workoutsList[0]?.totalVolume || 0) : 0
+            };
+            
+            setPendingShareFiles(files);
+            setPendingWorkoutData(workoutData);
+        } catch (err) {
+            console.error("Share to community error:", err);
+            showToast("Terjadi kesalahan.");
+        } finally {
+            setIsSharing(false);
+            setToastMsg("");
+        }
+    };
+
     const handleDownload = async () => {
         if (!cardRef.current) return;
         setIsGenerating(true);
@@ -484,6 +542,9 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
                 useCORS: true,
                 backgroundColor: null,
                 logging: false,
+                scrollY: -window.scrollY,
+                windowWidth: document.documentElement.offsetWidth,
+                windowHeight: document.documentElement.offsetHeight,
                 ignoreElements: (element) => element.classList.contains('ignore-download')
             });
             const image = canvas.toDataURL("image/png");
@@ -513,6 +574,9 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
                 useCORS: true,
                 backgroundColor: null,
                 logging: false,
+                scrollY: -window.scrollY,
+                windowWidth: document.documentElement.offsetWidth,
+                windowHeight: document.documentElement.offsetHeight,
                 ignoreElements: (element) => element.classList.contains('ignore-download')
             });
             
@@ -828,7 +892,7 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
                                                 soundEnabled={soundEnabled}
                                                 playSoundEffect={playSoundEffect}
                                                 selectedDate={selectedDate}
-                                                unitSystem={unitSystem}
+                                                unitSystem={units}
                                                 activePlanIds={activePlanIds}
                                                 isSubCard={true}
                                             />
@@ -1004,6 +1068,14 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
                     {isGenerating ? <Loader2 className="animate-spin" size={20}/> : <Download size={20}/>}
                 </button>
                 <button 
+                    onClick={handleShareToCommunity}
+                    disabled={isGenerating || isSharing}
+                    className="flex shrink-0 items-center justify-center p-3 rounded-2xl bg-[#41759b] text-white font-black shadow-xl hover:shadow-[#41759b]/30 transition-all active:scale-95 disabled:opacity-50"
+                    title="Bagikan ke Komunitas Lyfit"
+                >
+                    {isSharing ? <Loader2 className="animate-spin" size={20}/> : <img src="/logo-white.png" alt="Lyfit" className="w-6 h-6 object-contain" />}
+                </button>
+                <button 
                     onClick={handleShare}
                     disabled={isGenerating || isSharing}
                     className="flex-1 flex shrink-0 items-center justify-center p-3 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-black shadow-xl hover:shadow-sky-500/30 transition-all active:scale-95 disabled:opacity-50"
@@ -1017,6 +1089,22 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
                 <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] bg-rose-500/90 text-white text-[12px] font-bold px-5 py-3 rounded-2xl shadow-2xl border border-rose-400/50 animate-in zoom-in-95 fade-in duration-300 max-w-[80vw] text-center backdrop-blur-sm">
                     {toastMsg}
                 </div>
+            )}
+
+            {/* Create Post Modal (Staging Area) */}
+            {pendingShareFiles && (
+                <CreatePostModal 
+                    user={user} 
+                    theme={theme} 
+                    initialFiles={pendingShareFiles} 
+                    postDataOverrides={pendingWorkoutData}
+                    onClose={(success) => {
+                        setPendingShareFiles(null);
+                        if (success) {
+                            showToast("Berhasil dibagikan ke komunitas!");
+                        }
+                    }} 
+                />
             )}
         </div>
     );

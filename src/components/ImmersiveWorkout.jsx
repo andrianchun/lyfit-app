@@ -7,7 +7,7 @@ import { playSoundEffect } from '../utils/audio';
 
 const ImmersiveWorkout = ({
   t,
-  unitSystem,
+  units,
   programs,
   activeProgramId,
   activeProgramsList,
@@ -312,7 +312,7 @@ const ImmersiveWorkout = ({
 
   if (!ex) return null;
 
-  const isImp = unitSystem === 'imperial';
+  const isImp = units?.weight === 'lbs';
 
   const theme = t?.bgApp?.includes('040f1a') ? 'dark' : 'light';
 

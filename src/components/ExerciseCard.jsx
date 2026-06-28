@@ -9,12 +9,12 @@ import { getCachedExercises } from '../utils/exerciseDbApi';
 
 const ExerciseCard = ({
   ex, idx, isExtra = false,
-  t, lang, soundEnabled, unitSystem,
+  t, lang, soundEnabled, units,
   isSkip, onToggleSkip, onRemoveExtra, onOpenVideo, onReplaceClick,
   sets, onUpdateSet, onToggleSet, onSkipSet, onAddSet, onAddWarmupSets, onRemoveSet,
   gymProfiles, activeGymId, overloadHint
 }) => {
-  const isImp = unitSystem === 'imperial';
+  const isImp = units?.weight === 'lbs';
   const exType = ex.type || 'weight';
   const isCustom = ex.id > 1000000 && ex.source !== 'exercisedb';
   const doneCount = sets.filter(s => s.done).length;

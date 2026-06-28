@@ -17,7 +17,7 @@ import FloatingTimer from './components/FloatingTimer';
 
 // --- IMPORT HALAMAN (PAGES) ---
 import AuthPage from './pages/AuthPage';
-import DashboardTab from './pages/DashboardTab'; 
+import DashboardTab from './pages/DashboardTab';
 import WorkoutTab from './pages/WorkoutTab';
 import EditModeTab from './pages/EditModeTab';
 import CalendarTab from './pages/CalendarTab';
@@ -33,6 +33,8 @@ import SettingsModal from './modals/SettingsModal';
 import ProfileModal from './modals/ProfileModal';
 import HelpModal from './modals/HelpModal';
 import ProgramQuestionnaireModal from './modals/ProgramQuestionnaireModal';
+import AchievementPopup from './components/AchievementPopup';
+import { checkAchievements } from './data/achievements';
 
 // --- IMPORT DATA & MESIN ---
 import { playSoundEffect } from './utils/audio';
@@ -57,12 +59,15 @@ export default function App() {
   const [defaultReminderTime, setDefaultReminderTime] = useState("15:00");
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [biometricStandard, setBiometricStandard] = useState('asia'); // 'asia' | 'western'
-  const [unitSystem, setUnitSystem] = useState('metric'); // 'metric' | 'imperial'
+  const [unitSystem, setUnitSystem] = useState('metric'); // deprecated, kept for safety during transition
+  const [units, setUnits] = useState({ weight: 'kg', height: 'cm', distance: 'km', temp: 'c' });
   const [userProfile, setUserProfile] = useState({ goal: null, experience: null });
   const [gymProfiles, setGymProfiles] = useState([{ id: 'default', name: 'Lyfit Gym', equipment: 'all', config: {} }]);
   const [activeGymId, setActiveGymId] = useState('default');
   const [userGeminiApiKey, setUserGeminiApiKey] = useState('');
   const [activityTargets, setActivityTargets] = useState({ steps: 10000, weeklyDuration: 150, sleep: 8 });
+  const [userAchievements, setUserAchievements] = useState([]);
+  const [unlockedAchievementsPopup, setUnlockedAchievementsPopup] = useState([]);
 
   const [exerciseLibrary, setExerciseLibrary] = useState(defaultMasterExercises);
   const [programs, setPrograms] = useState(defaultPrograms);
@@ -124,6 +129,7 @@ export default function App() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [highlightPostId, setHighlightPostId] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [globalDetailExercise, setGlobalDetailExercise] = useState(null);
@@ -377,6 +383,18 @@ export default function App() {
         setExerciseLogs({});
         setExtraExercises([]);
         setSkippedExercises({});
+        setUserGeminiApiKey('');
+        setUserProfile(null);
+        setTheme('dark');
+        setLanguage('id');
+        setSoundEnabled(true);
+        setDefaultRestTime(60);
+        setUnits({ weight: 'kg', height: 'cm', distance: 'km', temp: 'c' });
+        setGymProfiles([{ id: 'default', name: 'Gym Utama', equipment: [] }]);
+        setActiveGymId('default');
+        setActivityTargets({ workouts: 3, calories: 1500, volume: 10000, activeTime: 120 });
+        setActivePlanIds([]);
+        setBiometricStandard('asia');
       }
       setIsAuthChecking(false);
     });
@@ -491,15 +509,28 @@ export default function App() {
               if (parsedSettings.defaultReminderTime) setDefaultReminderTime(parsedSettings.defaultReminderTime);
               if (parsedSettings.reminderEnabled !== undefined) setReminderEnabled(parsedSettings.reminderEnabled);
               if (parsedSettings.biometricStandard) setBiometricStandard(parsedSettings.biometricStandard);
-              if (parsedSettings.unitSystem) setUnitSystem(parsedSettings.unitSystem);
+              if (parsedSettings.unitSystem && !parsedSettings.units) {
+                  setUnitSystem(parsedSettings.unitSystem);
+                  if (parsedSettings.unitSystem === 'imperial') {
+                      setUnits({ weight: 'lbs', height: 'ft', distance: 'mi', temp: 'f' });
+                  } else {
+                      setUnits({ weight: 'kg', height: 'cm', distance: 'km', temp: 'c' });
+                  }
+              }
+              if (parsedSettings.units) setUnits(parsedSettings.units);
               if (parsedSettings.gymProfiles) setGymProfiles(parsedSettings.gymProfiles);
               if (parsedSettings.activeGymId) setActiveGymId(parsedSettings.activeGymId);
               if (parsedSettings.activityTargets) setActivityTargets(parsedSettings.activityTargets);
               if (parsedSettings.activePlanIds) setActivePlanIds(parsedSettings.activePlanIds);
-                else if (parsedSettings.activePlanId) setActivePlanIds([parsedSettings.activePlanId]);
+              else if (parsedSettings.activePlanId) setActivePlanIds([parsedSettings.activePlanId]);
+              else setActivePlanIds([]);
+              
               if (parsedSettings.userProfile) setUserProfile(parsedSettings.userProfile);
-              if (parsedSettings.userGeminiApiKey) setUserGeminiApiKey(parsedSettings.userGeminiApiKey);
+              else setUserProfile(null);
+              
+              setUserGeminiApiKey(parsedSettings.userGeminiApiKey || '');
             }
+            if (data.userAchievements) setUserAchievements(data.userAchievements);
             setUser(prev => {
                 if (!prev) return prev;
                 return {
@@ -567,7 +598,8 @@ export default function App() {
         setDoc(mainDocRef, {
           programs,
           exerciseLibrary,
-          settings: { theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem, gymProfiles, activeGymId, activityTargets, activePlanIds, userProfile, userGeminiApiKey },
+          settings: { theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem, units, gymProfiles, activeGymId, activityTargets, activePlanIds, userProfile, userGeminiApiKey },
+          userAchievements,
           updatedAt: new Date().toISOString()
         }, { merge: true }).catch(err => console.error("Auto-save Cloud gagal:", err));
 
@@ -594,7 +626,33 @@ export default function App() {
       
       return () => clearTimeout(timer);
     }
-  }, [history, programs, exerciseLibrary, theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem, gymProfiles, activeGymId, activityTargets, activePlanIds, user, isDataLoaded]);
+  }, [history, programs, exerciseLibrary, theme, language, soundEnabled, defaultRestTime, warmupVideos, cooldownVideos, weekStartDay, defaultReminderTime, reminderEnabled, biometricStandard, unitSystem, units, gymProfiles, activeGymId, activityTargets, activePlanIds, user, isDataLoaded, userAchievements]);
+
+  // --- CEK ACHIEVEMENTS ---
+  const historyRef = useRef(history);
+  useEffect(() => {
+    // Only run if history actually changed (new completion)
+    if (history !== historyRef.current && isDataLoaded) {
+      const allDates = Object.keys(history).sort();
+      let lastWorkout = null;
+      if (allDates.length > 0) {
+        const lastDay = history[allDates[allDates.length - 1]];
+        if (lastDay && lastDay.workouts) {
+          const completed = lastDay.workouts.filter(w => w.status === 'completed');
+          if (completed.length > 0) lastWorkout = completed[completed.length - 1];
+        }
+      }
+      const newBadges = checkAchievements(history, userAchievements, lastWorkout);
+      if (newBadges.length > 0) {
+        setUnlockedAchievementsPopup(prev => [...prev, ...newBadges]);
+        setUserAchievements(prev => {
+          const newSet = new Set([...prev, ...newBadges.map(b => b.id)]);
+          return Array.from(newSet);
+        });
+      }
+    }
+    historyRef.current = history;
+  }, [history, isDataLoaded, userAchievements]);
 
   // ==========================================
   // 3.5. REAL-TIME SYNC EXERCISE LOGS TO HISTORY
@@ -1444,7 +1502,7 @@ export default function App() {
           onClose={() => setGlobalDetailExercise(null)} 
           t={t} lang={lang} soundEnabled={soundEnabled} 
           fullHistory={history}
-          unitSystem={unitSystem}
+          units={units}
           exerciseLibrary={exerciseLibrary}
           setExerciseLibrary={setExerciseLibrary}
           programs={programs}
@@ -1471,8 +1529,11 @@ export default function App() {
         <ProfileModal 
            showProfileModal={showProfileModal} setShowProfileModal={setShowProfileModal} 
            user={user} setUser={setUser} t={t} theme={theme} handleLogout={handleLogout} history={history}
-           activityTargets={activityTargets} programs={programs} exerciseLibrary={exerciseLibrary}
-           lang={lang} language={language} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} selectedDate={selectedDate} unitSystem={unitSystem} activePlanIds={activePlanIds}
+           activityTargets={activityTargets} programs={programs} setPrograms={setPrograms} exerciseLibrary={exerciseLibrary}
+           lang={lang} language={language} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} selectedDate={selectedDate} units={units} activePlanIds={activePlanIds}
+           userAchievements={userAchievements}
+           highlightPostId={highlightPostId}
+           onClearHighlight={() => setHighlightPostId(null)}
         />
 
         <SettingsModal 
@@ -1485,25 +1546,44 @@ export default function App() {
          defaultReminderTime={defaultReminderTime} setDefaultReminderTime={setDefaultReminderTime}
          reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled}
          biometricStandard={biometricStandard} setBiometricStandard={setBiometricStandard}
-         unitSystem={unitSystem} setUnitSystem={setUnitSystem}
+         units={units} setUnits={setUnits}
          undoStack={undoStack} redoStack={redoStack} handleUndo={handleUndo} handleRedo={handleRedo}
          setShowHelp={setShowHelp}
          exportData={exportData} handleImportFile={handleImportFile}
          user={user} handleLogout={handleLogout}
       />
 
-      <Header setConfirmModal={setConfirmModal} t={t} theme={theme} user={user} showSettings={showSettings} setShowSettings={setShowSettings} setShowProfileModal={setShowProfileModal} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} activeTab={activeTab} setActiveTab={setActiveTab} isOffline={isOffline} />
+      <Header 
+        setConfirmModal={setConfirmModal} t={t} theme={theme} user={user} 
+        showSettings={showSettings} setShowSettings={setShowSettings} 
+        setShowProfileModal={setShowProfileModal} 
+        soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} 
+        activeTab={activeTab} setActiveTab={setActiveTab} 
+        isOffline={isOffline}
+        onNotifClick={(notif) => {
+          if (notif.postId) {
+            setHighlightPostId(notif.postId);
+            setShowProfileModal(true);
+          }
+          // follow notifications have no postId — just close panel (handled by NotificationPanel)
+        }}
+      />
       
       <main className={`${activeTab === 'calendar' ? 'px-4 pb-4 pt-0 h-[calc(100vh-140px)] flex flex-col' : activeTab === 'database' ? 'px-4 pb-4 pt-0 min-h-[70vh]' : 'p-4 min-h-[70vh]'} max-w-5xl mx-auto w-full`}>
          {activeTab === 'dashboard' && (
              <DashboardTab setConfirmModal={setConfirmModal} 
-               t={t} lang={lang} language={language} user={user} history={history} setHistory={setHistory} programs={programs}
-               navigateToWorkoutDate={navigateToWorkoutDate} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect}
-               theme={theme} exerciseLibrary={exerciseLibrary} selectedDate={selectedDate} activePlanIds={activePlanIds}
-               biometricStandard={biometricStandard} unitSystem={unitSystem}
+               t={t} lang={lang} language={language} user={user} 
+               history={history} setHistory={setHistory} 
+               programs={programs} exerciseLibrary={exerciseLibrary} 
+               navigateToWorkoutDate={navigateToWorkoutDate}
+               soundEnabled={soundEnabled} playSoundEffect={playSoundEffect}
+               theme={theme} selectedDate={selectedDate}
+               biometricStandard={biometricStandard} units={units}
                activityTargets={activityTargets} setActivityTargets={setActivityTargets}
                gymProfiles={gymProfiles} activeGymId={activeGymId}
+               activePlanIds={activePlanIds}
                userGeminiApiKey={userGeminiApiKey}
+               userAchievements={userAchievements}
              />
          )}
          
@@ -1511,7 +1591,7 @@ export default function App() {
              <WorkoutTab 
               t={t} lang={lang} language={language} programs={programs} selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               history={history} setHistory={setHistory} setActiveTab={setActiveTab}
-              unitSystem={unitSystem} userProfile={userProfile}
+              units={units} userProfile={userProfile}
               activeProgramId={activeProgramId} setActiveProgramId={setActiveProgramId} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} 
                warmupVideos={warmupVideos} cooldownVideos={cooldownVideos} onOpenDetail={setGlobalDetailExercise}
                exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary}
@@ -1546,7 +1626,7 @@ export default function App() {
                exerciseLogs={exerciseLogs} skippedExercises={skippedExercises} handleEditPastWorkout={handleEditPastWorkout}
                selectedDate={selectedDate} setSelectedDate={setSelectedDate} setActiveTab={setActiveTab}
                weekStartDay={weekStartDay} defaultReminderTime={defaultReminderTime} reminderEnabled={reminderEnabled}
-               unitSystem={unitSystem}
+               units={units}
                activePlanIds={activePlanIds}
              />
          )}
@@ -1554,7 +1634,7 @@ export default function App() {
          {activeTab === 'program' && (
              <ProgramTab setConfirmModal={setConfirmModal} 
                t={t} lang={lang} programs={programs} setPrograms={setPrograms} 
-               exerciseLibrary={exerciseLibrary} soundEnabled={soundEnabled}
+               user={user} exerciseLibrary={exerciseLibrary} soundEnabled={soundEnabled}
                setActiveAddModalTarget={setActiveAddModalTarget}
                saveStateToHistory={saveStateToHistory}
                openQuestionnaire={() => setShowQuestionnaire(true)}
@@ -1578,7 +1658,6 @@ export default function App() {
                 activeGymId={activeGymId} setActiveGymId={setActiveGymId}
              />
          )}
-
 
       </main>
 
@@ -1608,6 +1687,18 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Achievement Popup */}
+      <AchievementPopup 
+        achievements={unlockedAchievementsPopup} 
+        onClose={(id) => {
+          setUnlockedAchievementsPopup(prev => prev.filter(a => a.id !== id));
+        }} 
+        soundEnabled={soundEnabled} 
+        playSoundEffect={playSoundEffect} 
+        theme={theme} 
+        user={user}
+      />
+
       <BottomNav t={t} lang={lang} activeTab={activeTab} setActiveTab={setActiveTab} setIsEditingMode={setIsEditingMode} soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} />
     </div>
   );

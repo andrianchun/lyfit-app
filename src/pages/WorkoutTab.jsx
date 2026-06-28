@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Moon, Play, CalendarDays, X, CheckCircle, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
+import { Plus, Moon, Play, CalendarDays, X, CheckCircle, ChevronDown, ChevronUp, Dumbbell, Share2 } from 'lucide-react';
 import { fetchExercisesFromApi } from '../utils/exerciseDbApi';
+import { shareWorkoutToFeed } from '../utils/communityApi';
 
 // Import Komponen Pecahan
 import WorkoutHeader from '../components/WorkoutHeader';
@@ -10,6 +11,7 @@ import ImmersiveWorkout from '../components/ImmersiveWorkout';
 import ExerciseDetailModal from '../components/ExerciseDetailModal';
 import AlternativeExerciseModal from '../components/AlternativeExerciseModal';
 import EmptyWorkoutState from '../components/EmptyWorkoutState';
+import useDialog from '../hooks/useDialog';
 
 const WorkoutTab = ({ 
   t, lang, language, programs, 
@@ -40,13 +42,15 @@ const WorkoutTab = ({
   restTimer, setRestTimer,
   sessionToRun, setSessionToRun,
   resumeDurationSecs, setResumeDurationSecs,
-  unitSystem, userProfile, activePlanIds = [], showSupersetToast
+  units, userProfile, activePlanIds = [], showSupersetToast
 }) => {
   
   const [detailExercise, setDetailExercise] = useState(null);
   const [showAlternativeModal, setShowAlternativeModal] = useState(false);
   const [showProgramSelect, setShowProgramSelect] = useState(false);
   const [expandedSessions, setExpandedSessions] = useState({});
+  const isDark = t?.bgCard !== 'bg-white';
+  const { dialog, showAlert } = useDialog(isDark);
 
   const DAY_MAP = { 0: 'Min', 1: 'Sen', 2: 'Sel', 3: 'Rab', 4: 'Kam', 5: 'Jum', 6: 'Sab' };
   const getLocalYMD = (d) => {
@@ -320,12 +324,12 @@ const WorkoutTab = ({
       if (isNewRecord) {
         return {
           title: "🏆 REKOR BARU DIPECAHKAN!",
-          text: `Mantap! Kamu baru saja buat rekor 10RM baru: ${currentMax10RM} ${unitSystem === 'imperial' ? 'lbs' : 'kg'}!\n\nLanjutkan kerja kerasnya! 💪`
+          text: `Mantap! Kamu baru saja buat rekor 10RM baru: ${currentMax10RM} ${units?.weight === 'lbs' ? 'lbs' : 'kg'}!\n\nLanjutkan kerja kerasnya! 💪`
         };
       }
       
       const hasLastSession = lastSessionWeight > 0;
-      const uStr = unitSystem === 'imperial' ? 'lbs' : 'kg';
+      const uStr = units?.weight === 'lbs' ? 'lbs' : 'kg';
       
       if (hasLastSession) {
         const targetReps = exItem.reps || 10;
@@ -418,37 +422,18 @@ const WorkoutTab = ({
 
   const handleAddAdhocSession = () => {
      playSoundEffect('click', soundEnabled);
-     // Tambahkan sesi ad-hoc kosong ke history
-     setHistory(prev => {
-        const h = { ...prev };
-        const d = h[selectedDate] || { workouts: [] };
-        h[selectedDate] = {
-          ...d,
-          workouts: [
-            ...(d.workouts||[]),
-            { 
-              id: `adhoc_${Date.now()}`,
-              programId: 'adhoc', 
-              programName: 'Sesi Bebas', 
-              status: 'planned', 
-              log: {} 
-            }
-          ]
-        };
-        return h;
-     });
-     // Langsung buka modal tambah latihan
+     // Langsung buka modal tambah latihan tanpa membuat sesi dummy dulu
      onAddExtraClick();
   };
 
-  const isCompletelyEmpty = activeProgramsList.length === 0 || (activeProgramsList.every(p => !p.exercises || p.exercises.length === 0) && extraExercises.length === 0);
+  const isCompletelyEmpty = (activeProgramsList.length === 0 || activeProgramsList.every(p => !p.exercises || p.exercises.length === 0)) && extraExercises.length === 0;
 
   return (
     <>
       {isImmersiveMode && (
         <ImmersiveWorkout 
           t={t}
-          unitSystem={unitSystem}
+          units={units}
           programs={programs}
           activeProgramId={activeProgramId}
           activeProgramsList={sessionToRun === 'extra' ? [] : activeProgramsList.filter(p => p.workoutId === sessionToRun || p.id === sessionToRun)}
@@ -487,7 +472,7 @@ const WorkoutTab = ({
             t={t} lang={lang} soundEnabled={soundEnabled} 
             fullHistory={history}
             onReplace={(ex) => setShowAlternativeModal(true)}
-            unitSystem={unitSystem}
+            units={units}
             exerciseLibrary={exerciseLibrary}
             setExerciseLibrary={setExerciseLibrary}
             programs={programs}
@@ -542,7 +527,28 @@ const WorkoutTab = ({
                       <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 pr-4">
                         <div className="flex items-center gap-2">
                           {isProgramCompleted(prog) && <CheckCircle size={16} className="text-emerald-500 shrink-0 mt-0.5" />}
-                          <span className="body-lg uppercase tracking-widest break-words leading-tight">Sesi {pIdx + 1}: {prog.name}</span>
+                          <span className="body-lg uppercase tracking-widest break-words leading-tight flex-1">Sesi {pIdx + 1}: {prog.name}</span>
+                          {isProgramCompleted(prog) && (
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation();
+                                playSoundEffect('click', soundEnabled);
+                                // Call share to feed
+                                if (user) {
+                                  shareWorkoutToFeed(user.uid, user.email?.split('@')[0], {
+                                    programName: prog.name,
+                                    duration: prog.duration || '30:00',
+                                    totalVolume: 0
+                                  });
+                                  showAlert('Berhasil dibagikan ke komunitas!', { type: 'success', title: 'Dibagikan!' });
+                                }
+                              }}
+                              className={`p-1.5 rounded-full bg-indigo-500 text-white shrink-0 shadow-sm hover:scale-105 transition-transform`}
+                              title="Bagikan ke Feed"
+                            >
+                              <Share2 size={14} />
+                            </button>
+                          )}
                         </div>
                         {prog.planName && (
                           <span className={`text-xs ${t.textMuted} font-medium`}>Program: {prog.planName}</span>
@@ -562,7 +568,7 @@ const WorkoutTab = ({
                                 key={`${prog.id}-${ex.id}-${idx}`}
                                 ex={ex} idx={idx} isExtra={false}
                                 t={t} lang={lang} soundEnabled={soundEnabled}
-                                unitSystem={unitSystem}
+                                units={units}
                                 isSkip={!!skippedExercises[ex.id]} 
                                 onToggleSkip={() => onToggleSkip(ex.id)} 
                                 onRemoveExtra={onRemoveExtra} 
@@ -642,7 +648,7 @@ const WorkoutTab = ({
                               key={ex.id}
                               ex={ex} idx={activeProgram.exercises?.length + idx || idx} isExtra={true}
                               t={t} lang={lang} soundEnabled={soundEnabled}
-                              unitSystem={unitSystem}
+                              units={units}
                               isSkip={!!skippedExercises[ex.id]} 
                               onToggleSkip={() => onToggleSkip(ex.id)} 
                               onRemoveExtra={onRemoveExtra} 
@@ -779,6 +785,7 @@ const WorkoutTab = ({
           </div>
         );
       })()}
+      {dialog}
     </>
   );
 };

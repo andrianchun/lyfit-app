@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Search, Filter, Edit2, Plus, Dumbbell, Loader2, RefreshCw, Link as LinkIcon, X, Check, AlertCircle, ChevronDown, Database, Globe, Heart } from 'lucide-react';
-import { formatTarget, normalizeMuscleKey, muscleOptions, equipmentOptions, getVideoId } from '../data/constants';
+import { formatTarget, normalizeMuscleKey, muscleOptions, equipmentOptions, getVideoId, levelOptions } from '../data/constants';
 import EquipmentIcon from '../components/EquipmentIcon';
 import { fetchExercisesFromApi, clearExerciseDbCache, getCachedExercises } from '../utils/exerciseDbApi';
 import { playSoundEffect } from '../utils/audio';
@@ -357,7 +357,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
   const [searchQuery, setSearchQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState([]);
   const [equipFilter, setEquipFilter] = useState([]);
-  const [levelFilter, setLevelFilter] = useState('all');
+  const [levelFilter, setLevelFilter] = useState([]);
   const [sortOrder, setSortOrder] = useState('popular');
   const [showFilters, setShowFilters] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -525,8 +525,8 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
     }
 
     // Level filter
-    if (levelFilter !== 'all') {
-      list = list.filter(ex => (ex.level || 'beginner') === levelFilter);
+    if (levelFilter.length > 0) {
+      list = list.filter(ex => levelFilter.includes(ex.level || 'beginner'));
     }
 
     // (Active Gym Equipment Filter moved to gymFilteredLibrary)
@@ -794,7 +794,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
             <button
               onClick={() => { setShowFilters(!showFilters); playSoundEffect('click', soundEnabled); }}
               className={`p-3 rounded-xl transition-all ${
-                showFilters || muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter !== 'all'
+                showFilters || muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter.length > 0
                   ? `${t.bgAccent} text-white shadow-sm`
                   : `${t.inputBg} ${t.textMuted}`
               }`}
@@ -805,7 +805,7 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
 
           {/* Filter Panel */}
           {showFilters && (
-            <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} space-y-3 animate-in fade-in duration-200`}>
+            <div className={`p-3 rounded-xl border ${t.border} ${t.bgCard} space-y-2 animate-in fade-in duration-200`}>
               <FilterChips
                 t={t}
                 label={lang?.muscleGroup || 'Grup Otot'}
@@ -821,59 +821,44 @@ const DatabaseTab = ({ t, lang, exerciseLibrary, setExerciseLibrary, history, so
                 selected={equipFilter}
                 onToggle={(v) => toggleFilter(equipFilter, setEquipFilter, v)}
               />
+              <FilterChips
+                t={t}
+                label="Level"
+                options={levelOptions}
+                selected={levelFilter}
+                onToggle={(v) => toggleFilter(levelFilter, setLevelFilter, v)}
+                formatOption={(opt) => levelLabels[opt] || opt.charAt(0).toUpperCase() + opt.slice(1)}
+              />
 
               {/* Sort + Clear */}
               <div className={`flex items-center justify-between pt-3 mt-1 border-t ${t.border}`}>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>
-                      {lang?.sortBy || 'Urutkan'}
-                    </span>
-                    <div className="relative">
-                      <select 
-                        value={sortOrder}
-                        onChange={(e) => setSortOrder(e.target.value)}
-                        className={`px-3 py-1.5 rounded-lg ${t.inputBg} ${t.textMain} body-md outline-none appearance-none cursor-pointer pr-7`}
-                      >
-                        <option value="popular">Terpopuler</option>
-                        <option value="newest">{lang?.newest || 'Terbaru'}</option>
-                        <option value="az">A - Z</option>
-                        <option value="za">Z - A</option>
-                      </select>
-                      <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${t.textMuted}`} />
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>
-                      Level
-                    </span>
-                    <div className="relative">
-                      <select 
-                        value={levelFilter}
-                        onChange={(e) => setLevelFilter(e.target.value)}
-                        className={`px-3 py-1.5 rounded-lg ${t.inputBg} ${t.textMain} body-md outline-none appearance-none cursor-pointer pr-7`}
-                      >
-                        <option value="all">Semua</option>
-                        <option value="beginner">Pemula</option>
-                        <option value="intermediate">Menengah</option>
-                        <option value="expert">Mahir</option>
-                      </select>
-                      <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${t.textMuted}`} />
-                    </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>
+                    {lang?.sortBy || 'Urutkan'}
+                  </span>
+                  <div className="relative">
+                    <select 
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className={`px-3 py-1.5 rounded-lg ${t.inputBg} ${t.textMain} body-md outline-none appearance-none cursor-pointer pr-7`}
+                    >
+                      <option value="popular">Terpopuler</option>
+                      <option value="newest">{lang?.newest || 'Terbaru'}</option>
+                      <option value="az">A - Z</option>
+                      <option value="za">Z - A</option>
+                    </select>
+                    <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${t.textMuted}`} />
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3 mt-2 sm:mt-0">
-                  {(muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter !== 'all') && (
-                    <button
-                      onClick={() => { setMuscleFilter([]); setEquipFilter([]); setLevelFilter('all'); }}
-                      className="text-[10px] font-black text-rose-500 hover:opacity-80"
-                    >
-                      Reset Filter
-                    </button>
-                  )}
-                </div>
+                {(muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter.length > 0) && (
+                  <button
+                    onClick={() => { setMuscleFilter([]); setEquipFilter([]); setLevelFilter([]); }}
+                    className="text-[10px] font-black text-rose-500 hover:opacity-80 whitespace-nowrap ml-2"
+                  >
+                    Reset Filter
+                  </button>
+                )}
               </div>
             </div>
           )}

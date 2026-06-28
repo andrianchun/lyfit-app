@@ -11,12 +11,12 @@ const ExerciseDetailModal = ({
   lang, 
   fullHistory, 
   onReplace,
-  unitSystem,
+  units,
   exerciseLibrary,
   setExerciseLibrary,
   programs
 }) => {
-  const isImp = unitSystem === 'imperial';
+  const isImp = units?.weight === 'lbs';
   const existingLibEx = exerciseLibrary?.find(e => e.name?.toLowerCase() === initialEx.name?.toLowerCase() || e.id === initialEx.id);
   const stored10RM = existingLibEx?.rm10 || 0;
   const storedLastWeight = existingLibEx?.lastWeight || 0;

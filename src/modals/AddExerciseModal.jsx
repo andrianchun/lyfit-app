@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Search, Filter } from 'lucide-react';
-import { formatTarget, normalizeMuscleKey, muscleOptions, equipmentOptions } from '../data/constants';
+import { formatTarget, normalizeMuscleKey, muscleOptions, equipmentOptions, levelOptions } from '../data/constants';
 import { fetchExercisesFromApi, getCachedExercises } from '../utils/exerciseDbApi';
 import FilterChips from '../components/FilterChips';
 import UnifiedExerciseCard from '../components/UnifiedExerciseCard';
@@ -14,6 +14,7 @@ const AddExerciseModal = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState([]);
   const [equipFilter, setEquipFilter] = useState([]);
+  const [levelFilter, setLevelFilter] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
 
   const [onlineExercises, setOnlineExercises] = useState(getCachedExercises());
@@ -52,6 +53,9 @@ const AddExerciseModal = ({
   if (equipFilter.length > 0) {
       filteredLib = filteredLib.filter(ex => equipFilter.includes(ex.equipment));
   }
+  if (levelFilter.length > 0) {
+      filteredLib = filteredLib.filter(ex => levelFilter.includes(ex.level));
+  }
   
   // limit to 100 to prevent lag
   filteredLib = filteredLib.slice(0, 100);
@@ -64,8 +68,14 @@ const AddExerciseModal = ({
   if (!activeAddModalTarget) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end sm:justify-center p-0 sm:p-4 animate-in fade-in">
-      <div className={`w-full max-w-md mx-auto ${t.bgCard} rounded-t-2xl sm:rounded-2xl overflow-hidden border ${t.border} flex flex-col h-[85vh] sm:h-[80vh] shadow-2xl`}>
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-center p-4 animate-in fade-in"
+      onClick={() => setActiveAddModalTarget(null)}
+    >
+      <div 
+        className={`w-full max-w-md mx-auto ${t.bgCard} rounded-2xl overflow-hidden border ${t.border} flex flex-col h-[85vh] max-h-[800px] shadow-2xl`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         <div className={`p-5 border-b ${t.border} flex justify-between items-center bg-black/5`}>
             <h3 className="font-black h2">{lang.searchLib || 'Cari di Library...'}</h3>
@@ -104,7 +114,7 @@ const AddExerciseModal = ({
               </div>
 
               {showFilters && (
-                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} space-y-3 animate-in fade-in duration-200`}>
+                <div className={`p-3 rounded-xl border ${t.border} ${t.bgCard} space-y-2 animate-in fade-in duration-200`}>
                   <FilterChips
                     t={t}
                     label={lang?.muscleGroup || 'Grup Otot'}
@@ -120,11 +130,19 @@ const AddExerciseModal = ({
                     selected={equipFilter}
                     onToggle={(v) => toggleFilter(equipFilter, setEquipFilter, v)}
                   />
+                  <FilterChips
+                    t={t}
+                    label="Level"
+                    options={levelOptions}
+                    selected={levelFilter}
+                    onToggle={(v) => toggleFilter(levelFilter, setLevelFilter, v)}
+                    formatOption={(opt) => opt.charAt(0).toUpperCase() + opt.slice(1)}
+                  />
                   <div className={`flex items-center justify-between pt-3 mt-1 border-t ${t.border}`}>
                     <div></div>
-                    {(muscleFilter.length > 0 || equipFilter.length > 0) && (
+                    {(muscleFilter.length > 0 || equipFilter.length > 0 || levelFilter.length > 0) && (
                       <button
-                        onClick={() => { setMuscleFilter([]); setEquipFilter([]); }}
+                        onClick={() => { setMuscleFilter([]); setEquipFilter([]); setLevelFilter([]); }}
                         className="text-[10px] font-black text-rose-500 hover:opacity-80"
                       >
                         Reset Filter

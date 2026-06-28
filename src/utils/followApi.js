@@ -1,0 +1,119 @@
+import { db } from '../firebase';
+import {
+  collection, addDoc, getDocs, query, orderBy, limit,
+  serverTimestamp, doc, setDoc, updateDoc, deleteDoc,
+  where, writeBatch, increment, getDoc
+} from 'firebase/firestore';
+import { sendNotification } from './communityApi';
+
+// ─── Follow ───────────────────────────────────────────────────────────────────
+export const followUser = async (followerId, followingId, followerName, followerPhoto) => {
+  if (!followerId || !followingId || followerId === followingId) return;
+  try {
+    const ref = doc(db, 'follows', `${followerId}_${followingId}`);
+    await setDoc(ref, { followerId, followingId, createdAt: serverTimestamp() });
+    // update counts
+    await updateDoc(doc(db, 'community_users', followerId), { followingCount: increment(1) }).catch(() => {});
+    await updateDoc(doc(db, 'community_users', followingId), { followerCount: increment(1) }).catch(() => {});
+    await sendNotification(followingId, { type: 'follow', fromUserId: followerId, fromUserName: followerName, fromUserPhoto: followerPhoto });
+  } catch (err) {
+    console.error("Gagal follow:", err);
+    throw err;
+  }
+};
+
+export const unfollowUser = async (followerId, followingId) => {
+  try {
+    await deleteDoc(doc(db, 'follows', `${followerId}_${followingId}`));
+    await updateDoc(doc(db, 'community_users', followerId), { followingCount: increment(-1) }).catch(() => {});
+    await updateDoc(doc(db, 'community_users', followingId), { followerCount: increment(-1) }).catch(() => {});
+  } catch (err) {
+    console.error("Gagal unfollow:", err);
+    throw err;
+  }
+};
+
+export const isFollowing = async (followerId, followingId) => {
+  try {
+    const snap = await getDoc(doc(db, 'follows', `${followerId}_${followingId}`));
+    return snap.exists();
+  } catch {
+    return false;
+  }
+};
+
+export const getFollowingIds = async (userId) => {
+  try {
+    const q = query(collection(db, 'follows'), where('followerId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data().followingId);
+  } catch {
+    return [];
+  }
+};
+
+export const getFollowerCount = async (userId) => {
+  try {
+    const q = query(collection(db, 'follows'), where('followingId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.size;
+  } catch { return 0; }
+};
+
+export const getFollowingCount = async (userId) => {
+  try {
+    const q = query(collection(db, 'follows'), where('followerId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.size;
+  } catch { return 0; }
+};
+
+// ─── Follower/Following Lists ─────────────────────────────────────────────────
+export const getFollowerList = async (userId) => {
+  try {
+    const q = query(collection(db, 'follows'), where('followingId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ uid: d.data().followerId, ...d.data() }));
+  } catch { return []; }
+};
+
+export const getFollowingList = async (userId) => {
+  try {
+    const q = query(collection(db, 'follows'), where('followerId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ uid: d.data().followingId, ...d.data() }));
+  } catch { return []; }
+};
+
+// ─── Block ────────────────────────────────────────────────────────────────────
+export const blockUser = async (blockerId, blockedId) => {
+  try {
+    await setDoc(doc(db, 'blocks', `${blockerId}_${blockedId}`), {
+      blockerId, blockedId, createdAt: serverTimestamp()
+    });
+    // Also unfollow both directions if following
+    await deleteDoc(doc(db, 'follows', `${blockerId}_${blockedId}`)).catch(() => {});
+    await deleteDoc(doc(db, 'follows', `${blockedId}_${blockerId}`)).catch(() => {});
+  } catch (err) { console.error('Gagal block:', err); throw err; }
+};
+
+export const unblockUser = async (blockerId, blockedId) => {
+  try {
+    await deleteDoc(doc(db, 'blocks', `${blockerId}_${blockedId}`));
+  } catch (err) { console.error('Gagal unblock:', err); throw err; }
+};
+
+export const isBlocked = async (blockerId, blockedId) => {
+  try {
+    const snap = await getDoc(doc(db, 'blocks', `${blockerId}_${blockedId}`));
+    return snap.exists();
+  } catch { return false; }
+};
+
+export const getBlockedList = async (userId) => {
+  try {
+    const q = query(collection(db, 'blocks'), where('blockerId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data().blockedId);
+  } catch { return []; }
+};

@@ -3,7 +3,7 @@ import { TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { getLocalYMD, formatTarget, normalizeMuscleKey } from '../data/constants';
 
-const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibrary, soundEnabled, playSoundEffect, selectedDate, unitSystem, activePlanIds, isSubCard = false }) => {
+const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibrary, soundEnabled, playSoundEffect, selectedDate, units, activePlanIds, isSubCard = false }) => {
   const [chartType, setChartType] = useState(() => {
       try {
           const saved = localStorage.getItem('lyfit_prog_chart_type');
@@ -103,7 +103,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
               const exName = ex.name;
               const exType = ex.type || 'weight';
               const exTargets = Array.isArray(ex.target) ? ex.target : [ex.target || 'Lainnya'];
-              const isImp = unitSystem === 'imperial';
+              const isImp = units?.weight === 'lbs';
               
               Object.values(sets).forEach(s => {
                   if (s && s.done && !s.skipped) {
@@ -211,7 +211,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
         return (itemFreq[b] || 0) - (itemFreq[a] || 0);
     });
     return { data: finalDataPoints, items: sortedItems, recentItems: Array.from(recentItems) };
-  }, [chartType, language, history, programs, exerciseLibrary, selectedDate, unitSystem]);
+  }, [chartType, language, history, programs, exerciseLibrary, selectedDate, units]);
 
   const scrollRef = useRef(null);
 
@@ -441,7 +441,7 @@ const ProgressTab = ({ t, lang, language, theme, history, programs, exerciseLibr
     }); 
   };
 
-  const isImp = unitSystem === 'imperial';
+  const isImp = units?.weight === 'lbs';
 
   return (
     <div className={`${!isSubCard ? 'px-5 pt-5 pb-1' : ''} animate-in fade-in duration-300`}>

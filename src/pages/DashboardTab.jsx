@@ -10,6 +10,7 @@ import { MuscleProgress } from '../components/MuscleProgress';
 import SwipeInput from '../components/SwipeInput';
 import { formatNumber } from '../utils/numberFormat';
 
+
 const MetricBox = ({ label, value, unit, icon, color, t, theme }) => (
     <div className={`p-4 rounded-2xl flex flex-col justify-between ${theme === 'dark' ? 'bg-[#0f172a]' : 'bg-slate-50'} border ${t.border}`}>
         <div className="flex justify-between items-start mb-2">
@@ -32,7 +33,7 @@ const MiniBox = ({ label, value, unit, t, theme }) => (
     </div>
 );
 
-const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, exerciseLibrary, navigateToWorkoutDate, soundEnabled, playSoundEffect, theme, selectedDate, biometricStandard, unitSystem, setConfirmModal, activityTargets, setActivityTargets, gymProfiles, activeGymId, activePlanIds, userGeminiApiKey }) => {
+const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, exerciseLibrary, navigateToWorkoutDate, soundEnabled, playSoundEffect, theme, selectedDate, biometricStandard, units, setConfirmModal, activityTargets, setActivityTargets, gymProfiles, activeGymId, activePlanIds, userGeminiApiKey, userAchievements }) => {
   const todayStr = getLocalYMD(new Date());
   const activeDate = todayStr; // Selalu tampilkan hari ini, terlepas dari kalender latihan
 
@@ -365,9 +366,11 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
 
   const isAnyAppConnected = connectedApps.healthconnect || connectedApps.lyfeat;
   const scoreStyle = getScoreColor(bioData.bodyScore);
-  const isImp = unitSystem === 'imperial';
+  const isImp = units?.weight === 'lbs';
+  const dispMainWeight = isImp && bioData.weight ? Number((bioData.weight * 2.20462).toFixed(1)) : bioData.weight || '-';
+  const dispMainHeight = isImp && bioData.height ? Number((bioData.height * 0.393701).toFixed(1)) : bioData.height || '-';
   const dispMainMuscle = isImp && bioData.muscleMass ? Number((bioData.muscleMass * 2.20462).toFixed(1)) : bioData.muscleMass || '-';
-  const dispMainWaist = isImp && bioData.waist ? Number((bioData.waist * 0.393701).toFixed(1)) : bioData.waist || '-';
+  const dispMainWaist = units?.height === 'ft' && bioData.waist ? Number((bioData.waist * 0.393701).toFixed(1)) : bioData.waist || '-';
 
   // Smart Merge Deduplication (LyFit Internal + BioData/HealthConnect)
   const { mergedDailyActiveMinutes, mergedDailyCalories, mergedWeeklyActiveMinutes, mergedWeeklyWorkoutDuration, mergedWeeklySessions, mergedWeeklyCalories } = useMemo(() => {
@@ -591,7 +594,7 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
                  t={t} theme={theme} history={history} 
                  soundEnabled={soundEnabled} playSoundEffect={playSoundEffect} 
                  onPointClick={handleChartPointClick}
-                 unitSystem={unitSystem}
+                 units={units}
               />
               </div>
             </div>
@@ -745,6 +748,8 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
       </div>
       </div>
 
+
+
       {/* --- GRUP PROGRESS --- */}
       <div className="flex flex-col w-full min-w-0">
         {/* SECTION: PROGRESS TAB — Main card */}
@@ -770,7 +775,7 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
               selectedDate={selectedDate}
               isSubCard={false}
               activePlanIds={activePlanIds}
-              unitSystem={unitSystem}
+              units={units}
             />
             <button 
                  onClick={() => { playSoundEffect('click', soundEnabled); setIsProgressExpanded(!isProgressExpanded); }}
@@ -802,7 +807,7 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
         showManualModal={showManualModal} setShowManualModal={setShowManualModal} manualTab={manualTab} setManualTab={setManualTab}
         modalDate={modalDate} setModalDate={setModalDate} formBio={formBio} setFormBio={setFormBio} bioData={bioData}
         handleSaveManualData={handleSaveManualData} handleDeleteBioData={handleDeleteBioData} soundEnabled={soundEnabled}
-        unitSystem={unitSystem} setConfirmModal={setConfirmModal} userGeminiApiKey={userGeminiApiKey}
+        units={units} setConfirmModal={setConfirmModal} userGeminiApiKey={userGeminiApiKey}
       />
 
       {/* DETAIL BIOMETRIK MODAL */}

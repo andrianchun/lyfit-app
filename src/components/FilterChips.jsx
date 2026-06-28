@@ -1,11 +1,10 @@
 import React from 'react';
 
 const FilterChips = ({ t, label, options, selected, onToggle, formatOption }) => {
-  const isLarge = options.length > 5;
   return (
     <div className="space-y-1.5">
       <span className={`text-[10px] font-black uppercase tracking-wider ${t.textMuted}`}>{label}</span>
-      <div className={`${isLarge ? 'grid grid-rows-2 grid-flow-col' : 'flex'} gap-1.5 overflow-x-auto hide-scrollbar pb-2`}>
+      <div className={`flex gap-1.5 overflow-x-auto hide-scrollbar pb-1.5`}>
         {options.map(opt => (
           <button
             key={opt}
