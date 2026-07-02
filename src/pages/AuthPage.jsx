@@ -5,7 +5,8 @@ import { playSoundEffect } from '../utils/audio';
 // --- IMPORT MESIN FIREBASE & CAPACITOR NATIVE ---
 import { auth, googleProvider } from '../firebase';
 import { 
-  signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -28,6 +29,24 @@ const AuthPage = ({ t, theme, soundEnabled, onLogin }) => {
       setErrorMsg(bannedMsg);
       localStorage.removeItem('lyfit_banned_msg');
     }
+  }, []);
+
+  // Handle result setelah Google redirect sign-in
+  useEffect(() => {
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        onLogin({
+          uid: result.user.uid,
+          email: result.user.email,
+          name: result.user.displayName || 'Sobat LyFit',
+          photoURL: result.user.photoURL
+        });
+      }
+    }).catch((err) => {
+      if (err.code && err.code !== 'auth/no-current-user') {
+        console.error('Redirect result error:', err);
+      }
+    });
   }, []);
 
   // 1. FUNGSI LOGIN & REGISTER MANUAL
@@ -92,14 +111,9 @@ const AuthPage = ({ t, theme, soundEnabled, onLogin }) => {
           photoURL: userCredential.user.photoURL
         });
       } else {
-        // JALUR WEB BROWSER LAPTOP
-        const result = await signInWithPopup(auth, googleProvider);
-        onLogin({ 
-          uid: result.user.uid, 
-          email: result.user.email, 
-          name: result.user.displayName || 'Sobat LyFit',
-          photoURL: result.user.photoURL
-        });
+        // JALUR WEB BROWSER — pakai redirect, bukan popup (tidak ada COOP warning)
+        await signInWithRedirect(auth, googleProvider);
+        // onLogin akan dipanggil oleh getRedirectResult saat halaman dimuat ulang
       }
     } catch (error) {
       console.error(error);
