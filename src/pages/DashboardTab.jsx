@@ -643,7 +643,16 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
                          <div className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-full mb-1 overflow-hidden shrink-0">
                              <div className="h-full bg-orange-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (Number(bioData.nutritionCalories || 0) / Math.max(1, (activityTargets?.activityCalories || 2000) + (activityTargets?.calorieDelta || 0))) * 100)}%` }}></div>
                          </div>
-                         <span className="text-[9px] opacity-0 select-none hidden sm:block">Spacer</span>
+                         <div className="flex items-center gap-1.5 mt-0.5 opacity-80">
+                             {activityTargets?.nutritionGoal && activityTargets.nutritionGoal !== 'custom' && (
+                                 <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm ${activityTargets.nutritionGoal === 'cutting' ? 'bg-rose-500/15 text-rose-500' : (activityTargets.nutritionGoal === 'maintenance' ? 'bg-zinc-500/15 text-zinc-500' : 'bg-emerald-500/15 text-emerald-500')} uppercase tracking-wider`}>
+                                     {activityTargets.nutritionGoal.replace('_', ' ')}
+                                 </span>
+                             )}
+                             <span className="text-[9px] text-zinc-500 font-bold whitespace-nowrap">
+                                 {activityTargets?.calorieDelta > 0 ? '+' : ''}{activityTargets?.calorieDelta || 0} kcal/hari
+                             </span>
+                         </div>
                      </div>
                  </div>
 
@@ -982,18 +991,34 @@ const DashboardTab = ({ t, lang, language, user, history, setHistory, programs, 
                                   <span className={`absolute right-4 top-1/2 -translate-y-1/2 caption font-bold ${t.textMuted}`}>Kcal</span>
                               </div>
                           </div>
-                          <div>
-                              <label className={`caption font-bold ${t.textMuted} mb-1 block uppercase tracking-wider`}>Defisit/Surplus</label>
-                              <div className="relative">
-                                  <SwipeInput 
-                                      value={targetForm.calorieDelta ?? ''} 
-                                      onChange={(v) => setTargetForm(p => ({...p, calorieDelta: v}))} 
-                                      min={-1500} max={1500} step={50} 
-                                      placeholder="0"
-                                      language={language}
-                                      className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-4 rounded-xl outline-none font-black text-center text-xl pr-14`}
-                                  />
-                                  <span className={`absolute right-4 top-1/2 -translate-y-1/2 caption font-bold ${t.textMuted}`}>Kcal</span>
+                          <div className="col-span-2 mt-4 pt-4 border-t border-dashed border-black/10 dark:border-white/10">
+                              <label className={`caption font-bold ${t.textMuted} mb-2 block uppercase tracking-wider`}>Target Nutrisi Harian</label>
+                              <div className="grid grid-cols-2 gap-2 mb-3">
+                                  {[
+                                      { id: 'cutting', label: 'Cutting', delta: -500, icon: '🔥', color: 'text-rose-500' },
+                                      { id: 'maintenance', label: 'Maintenance', delta: 0, icon: '⚖️', color: 'text-zinc-500' },
+                                      { id: 'clean_bulk', label: 'Clean Bulk', delta: 300, icon: '💪', color: 'text-emerald-500' },
+                                      { id: 'aggressive_bulk', label: 'Aggressive', delta: 500, icon: '🚀', color: 'text-orange-500' },
+                                  ].map(preset => (
+                                      <button key={preset.id} onClick={() => setTargetForm(p => ({...p, nutritionGoal: preset.id, calorieDelta: preset.delta}))} className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${targetForm.nutritionGoal === preset.id ? `border-current bg-black/5 dark:bg-white/5 ${preset.color}` : `${t.border} opacity-50 hover:opacity-100`}`}>
+                                          <span className="text-lg mb-1">{preset.icon}</span>
+                                          <span className="text-[10px] font-bold uppercase">{preset.label}</span>
+                                          <span className="text-[9px] opacity-70">{preset.delta > 0 ? '+' : ''}{preset.delta} kcal</span>
+                                      </button>
+                                  ))}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                      <SwipeInput 
+                                          value={targetForm.calorieDelta ?? ''} 
+                                          onChange={(v) => setTargetForm(p => ({...p, calorieDelta: v, nutritionGoal: 'custom'}))} 
+                                          min={-1500} max={1500} step={50} 
+                                          placeholder="0"
+                                          language={language}
+                                          className={`w-full ${t.placeholderAccent} ${t.inputBg} ${t.textMain} p-3 rounded-xl outline-none font-black text-center text-sm`}
+                                      />
+                                  </div>
+                                  <span className={`caption font-bold ${t.textMuted}`}>Kcal (Custom Defisit/Surplus)</span>
                               </div>
                           </div>
                       </div>

@@ -125,7 +125,12 @@ const SortableExerciseItem = ({ ex, prevEx, idx, routineId, t, lang, soundEnable
   );
 };
 
-const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, user, exerciseLibrary, soundEnabled, setActiveAddModalTarget, saveStateToHistory, openQuestionnaire, activePlanIds = [], setActivePlanIds, gymProfiles, focusRoutineId, setFocusRoutineId }) => {
+const ProgramTab = ({ 
+  t, lang, programs, setPrograms, user, exerciseLibrary, soundEnabled, 
+  setActiveAddModalTarget, saveStateToHistory, openQuestionnaire,
+  activePlanIds, setActivePlanIds, gymProfiles,
+  focusRoutineId, setFocusRoutineId, setConfirmModal, activityTargets
+}) => {
   
   const isDark = t.bgCard !== 'bg-white';
   const { dialog, showAlert } = useDialog(isDark);
@@ -429,7 +434,7 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, user, exe
 
     const groupedPrograms = programs.reduce((acc, prog) => {
       const key = prog.planId || 'custom';
-      if (!acc[key]) acc[key] = { planId: key, planName: prog.planName || 'Program Default', planLevel: prog.planLevel, routines: [], assignedDays: prog.assignedDays || [] };
+      if (!acc[key]) acc[key] = { planId: key, planName: prog.planName || 'Program Default', planLevel: prog.planLevel, planGoal: prog.planGoal || 'maintenance', routines: [], assignedDays: prog.assignedDays || [] };
       acc[key].routines.push(prog);
       return acc;
     }, {});
@@ -658,6 +663,11 @@ const ProgramTab = ({ setConfirmModal, t, lang, programs, setPrograms, user, exe
                       )}
                     </div>
                     <div className="flex flex-wrap gap-1.5 items-center mt-2">
+                      {activityTargets?.nutritionGoal && activityTargets.nutritionGoal !== 'custom' && group.planGoal && group.planGoal !== 'maintenance' && group.planGoal !== activityTargets.nutritionGoal && (
+                        <div className="flex items-center gap-1.5 bg-rose-500/10 text-rose-500 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">
+                          ⚠️ Program {group.planGoal.replace('_', ' ')} (Targetmu: {activityTargets.nutritionGoal.replace('_', ' ')})
+                        </div>
+                      )}
                       {group.planLevel && (
                         <span className={`px-2 py-0.5 text-[10px] font-black uppercase rounded-md ${t.bgAccentSoft} ${t.textAccent}`}>
                           Level: {group.planLevel === 'beginner' ? 'Pemula' : group.planLevel === 'intermediate' ? 'Menengah' : group.planLevel === 'advanced' ? 'Mahir' : group.planLevel}

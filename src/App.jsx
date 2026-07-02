@@ -275,11 +275,41 @@ export default function App() {
     }
 
     if (plan.calculatedTargets) {
-      setActivityTargets(prev => ({
-        ...prev,
-        activityCalories: plan.calculatedTargets.activityCalories,
-        calorieDelta: plan.calculatedTargets.calorieDelta
-      }));
+      const existingGoal = activityTargets?.nutritionGoal;
+      const newGoal = plan.calculatedTargets.nutritionGoal;
+      
+      const updateTargets = (overrideGoal = false) => {
+        setActivityTargets(prev => ({
+          ...prev,
+          tdee: plan.calculatedTargets.tdee,
+          ...(overrideGoal || !existingGoal ? {
+            activityCalories: plan.calculatedTargets.activityCalories,
+            calorieDelta: plan.calculatedTargets.calorieDelta,
+            nutritionGoal: newGoal
+          } : {})
+        }));
+      };
+
+      if (existingGoal && existingGoal !== newGoal && existingGoal !== 'custom') {
+        const goalLabels = { 'cutting': 'Cutting', 'clean_bulk': 'Clean Bulk', 'maintenance': 'Maintenance' };
+        setConfirmModal({
+          isOpen: true,
+          title: 'Perbedaan Target Kalori',
+          message: `Program baru ini dirancang untuk target ${goalLabels[newGoal] || newGoal}, tapi target nutrisimu saat ini adalah ${goalLabels[existingGoal] || existingGoal}. Apakah kamu ingin mengganti target nutrisi harianmu?`,
+          confirmText: `Ganti ke ${goalLabels[newGoal] || newGoal}`,
+          cancelText: `Tetap ${goalLabels[existingGoal] || existingGoal}`,
+          onConfirm: () => {
+            updateTargets(true);
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          },
+          onCancel: () => {
+            updateTargets(false);
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          }
+        });
+      } else {
+        updateTargets(true);
+      }
     }
 
     // Unlocked "Langkah Pertama" achievement after completing questionnaire
@@ -327,6 +357,7 @@ export default function App() {
         planId: newPlanId,
         planName: uniqueName,
         planLevel: userExperience,
+        planGoal: plan.calculatedTargets?.nutritionGoal || 'maintenance',
         assignedDays: routine.day ? [routine.day] : [] 
       };
     });
@@ -465,8 +496,8 @@ export default function App() {
         setUnits({ weight: 'kg', height: 'cm', distance: 'km', temp: 'c' });
         setGymProfiles([{ id: 'default', name: 'Lyfit Gym', equipment: 'all', config: {} }]);
         setActiveGymId('default');
-        setActivityTargets({ workouts: 3, calories: 1500, volume: 10000, activeTime: 120 });
-        setActivePlanIds([]);
+        setActivityTargets({ steps: 10000, weeklyDuration: 150, sleep: 8 });
+        setActivePlanIds(['custom']);
         setBiometricStandard('asia');
       }
       setIsAuthChecking(false);
@@ -551,10 +582,16 @@ export default function App() {
 
             if (data.programs) {
               const parsedPrograms = typeof data.programs === 'string' ? JSON.parse(data.programs) : data.programs;
+              // Default day assignments for the 4 built-in programs
+              const DEFAULT_DAYS = { 'prog-1': ['Sel'], 'prog-2': ['Rab'], 'prog-3': ['Jum'], 'prog-4': ['Min'] };
               const migratedPrograms = parsedPrograms.map(p => ({
                 ...p,
                 restTime: p.restTime ?? 120,
                 warmupVideoUrls: p.warmupVideoUrls ?? [],
+                // Migrate built-in default programs: add planId + assignedDays if missing
+                planId: p.planId ?? (DEFAULT_DAYS[p.id] ? 'custom' : undefined),
+                planName: p.planName ?? (DEFAULT_DAYS[p.id] ? 'Program Default' : undefined),
+                assignedDays: p.assignedDays ?? DEFAULT_DAYS[p.id] ?? [],
                 exercises: p.exercises ? p.exercises.map(ex => 
                   (ex.id === 101 && ex.name === 'Incline Smith Machine Press') ? { ...ex, name: 'Smith Machine Incline Bench Press' } : ex
                 ) : []
@@ -603,7 +640,7 @@ export default function App() {
               if (parsedSettings.activityTargets) setActivityTargets(parsedSettings.activityTargets);
               if (parsedSettings.activePlanIds) setActivePlanIds(parsedSettings.activePlanIds);
               else if (parsedSettings.activePlanId) setActivePlanIds([parsedSettings.activePlanId]);
-              else setActivePlanIds([]);
+              else setActivePlanIds(['custom']); // default: always activate the built-in default plan
               
               if (parsedSettings.userProfile) setUserProfile(parsedSettings.userProfile);
               else setUserProfile(null);
@@ -1778,6 +1815,7 @@ export default function App() {
                activePlanIds={activePlanIds} setActivePlanIds={setActivePlanIds}
                gymProfiles={gymProfiles}
                focusRoutineId={focusRoutineId} setFocusRoutineId={setFocusRoutineId}
+               activityTargets={activityTargets}
              />
          )}
 

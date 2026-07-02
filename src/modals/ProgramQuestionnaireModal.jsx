@@ -172,7 +172,9 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
         },
         calculatedTargets: {
             activityCalories: tdee,
-            calorieDelta: calorieDelta
+            tdee: tdee,
+            calorieDelta: calorieDelta,
+            nutritionGoal: answers.goal === 'fat_loss' ? 'cutting' : (answers.goal === 'muscle_gain' ? 'clean_bulk' : 'maintenance')
         }
     });
     onClose();
