@@ -23,7 +23,7 @@ const ConfirmModal = ({ confirmModal, setConfirmModal, t, lang, soundEnabled, pl
             </button>
             {confirmModal.onConfirm && (
               <button 
-                onClick={() => { playSoundEffect('click', soundEnabled); confirmModal.onConfirm(); setConfirmModal({isOpen:false}); }} 
+                onClick={() => { playSoundEffect('click', soundEnabled); const cb = confirmModal.onConfirm; setConfirmModal({isOpen:false}); setTimeout(() => cb(), 0); }} 
                 className={`flex-1 py-3 rounded-xl font-black body-lg text-white shadow-lg active:scale-[0.98] transition-all ${isDelete ? 'bg-rose-500 shadow-rose-500/20 hover:bg-rose-600' : t?.bgAccent + ' shadow-black/20 hover:opacity-90'}`}
               >
                 {confirmModal.confirmText || (isDelete ? 'Ya, Hapus' : 'Ya, Lanjutkan')}
