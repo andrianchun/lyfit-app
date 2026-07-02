@@ -109,7 +109,10 @@ const CommunityTab = ({ t, theme, user, programs, setPrograms, soundEnabled, pla
       } else {
         setLeaderboard([]);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+      showAlert(e.message || "Gagal memuat feed", { type: 'error', title: 'Error Feed' });
+    }
     setIsLoading(false);
   }, [activeFilter, user?.uid, followingIds, blockedIds]);
 

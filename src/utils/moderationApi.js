@@ -138,9 +138,15 @@ export const reportUser = async (targetUserId, reporterId, reason) => {
 };
 
 export const getLocalHiddenPosts = () => {
-    try { return JSON.parse(localStorage.getItem('lyfit_hidden_posts') || '[]'); } catch { return []; }
+    try { 
+        const res = JSON.parse(localStorage.getItem('lyfit_hidden_posts'));
+        return Array.isArray(res) ? res : [];
+    } catch { return []; }
 };
 
 export const getLocalBlockedUsers = () => {
-    try { return JSON.parse(localStorage.getItem('lyfit_blocked_users_local') || '[]'); } catch { return []; }
+    try {
+        const res = JSON.parse(localStorage.getItem('lyfit_blocked_users_local'));
+        return Array.isArray(res) ? res : [];
+    } catch { return []; }
 };
