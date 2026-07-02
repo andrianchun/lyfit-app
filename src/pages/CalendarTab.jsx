@@ -1076,10 +1076,34 @@ const CalendarTab = ({
                                                    <span>Direncanakan</span>
                                                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5">
                                                      <span className="opacity-50 text-[10px] ml-0.5">•</span>
-                                                     <button onClick={() => { setNotificationModalTarget({ workoutId: w.id, programName: w.programName, dateStr: targetDateStr, existingNotifId: w.reminderNotifId, currentTime: effectiveTime, currentEnabled: isNotifOn }); }} className={`flex items-center gap-1 px-1.5 py-0.5 -ml-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${isNotifOn ? t.textAccent : 'opacity-60 hover:opacity-100'}`} title="Pengingat">
-                                                       {isNotifOn ? <Bell size={13} /> : <BellOff size={13} />}
-                                                       <span className="font-bold">{effectiveTime}</span>
-                                                     </button>
+                                                     <button 
+                                                        onClick={(e) => { 
+                                                          e.stopPropagation();
+                                                          // Quick toggle: flip reminderEnabled for this workout
+                                                          const newEnabled = !isNotifOn;
+                                                          if (newEnabled) {
+                                                            // Open modal to also set the time
+                                                            setNotificationModalTarget({ workoutId: w.id, programName: w.programName, dateStr: targetDateStr, existingNotifId: w.reminderNotifId, currentTime: effectiveTime, currentEnabled: newEnabled });
+                                                          } else {
+                                                            // Quick-disable: cancel notif and save
+                                                            if (w.reminderNotifId) cancelWorkoutNotification(w.reminderNotifId);
+                                                            setHistory(prev => {
+                                                              const h = { ...prev };
+                                                              const d = h[targetDateStr];
+                                                              if (d && d.workouts) {
+                                                                h[targetDateStr] = { ...d, workouts: d.workouts.map(wx => wx.id === w.id ? { ...wx, reminderEnabled: false } : wx) };
+                                                              }
+                                                              return h;
+                                                            });
+                                                          }
+                                                        }} 
+                                                        className={`flex items-center gap-1 px-1.5 py-0.5 -ml-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${isNotifOn ? t.textAccent : 'opacity-60 hover:opacity-100'}`} 
+                                                        title={isNotifOn ? 'Notifikasi aktif — klik untuk matikan' : 'Notifikasi mati — klik untuk aktifkan'}
+                                                      >
+                                                        {isNotifOn ? <Bell size={13} /> : <BellOff size={13} />}
+                                                        <span className="font-bold">{effectiveTime}</span>
+                                                        <span className="text-[9px] opacity-50 ml-0.5">{isNotifOn ? '✓' : '✗'}</span>
+                                                      </button>
                                                    </div>
                                                  </div>
                                                  {estDuration > 0 && (
@@ -1335,26 +1359,24 @@ const NotificationModal = ({ t, target, defaultReminderTime, soundEnabled, remin
           )}
         </div>
         
-        {/* Time Picker - HH : MM */}
+        {/* Time Picker - SwipeInput */}
         <div className="flex flex-col items-center justify-center py-4 mb-2 animate-in zoom-in-95 duration-300 ease-out">
           <p className="caption opacity-50 mb-3 text-center">Jam Rencana Latihan (Jam : Menit)</p>
           <div className="flex items-center justify-center gap-3">
-              <input 
-                type="text" inputMode="numeric" maxLength={2}
-                value={hh} 
-                onChange={e => setHh(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                onBlur={() => setHh(clamp(hh, 23))}
-                className={inputCls}
-                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}
+              <SwipeInput
+                value={parseInt(hh) || 0}
+                onChange={(val) => setHh(String(val).padStart(2, '0'))}
+                min={0} max={23} step={1}
+                theme={isDark ? 'dark' : 'light'}
+                width="w-16"
               />
               <span className="font-black text-2xl opacity-30">:</span>
-              <input 
-                type="text" inputMode="numeric" maxLength={2}
-                value={mm} 
-                onChange={e => setMm(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                onBlur={() => setMm(clamp(mm, 59))}
-                className={inputCls}
-                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}
+              <SwipeInput
+                value={parseInt(mm) || 0}
+                onChange={(val) => setMm(String(val).padStart(2, '0'))}
+                min={0} max={59} step={5}
+                theme={isDark ? 'dark' : 'light'}
+                width="w-16"
               />
             </div>
           </div>
