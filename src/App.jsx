@@ -248,6 +248,28 @@ export default function App() {
         hasCompletedOnboarding: true,
         ...(plan.biometrics || {})
       }));
+
+      // SIMPAN KE HISTORY JUGA SUPAYA MUNCUL DI GRAFIK KLINIS
+      if (plan.biometrics && plan.biometrics.weight && plan.biometrics.height) {
+          const todayStr = getLocalYMD(new Date());
+          setHistory(prev => {
+              const prevDay = prev[todayStr] || {};
+              const prevBio = prevDay.bioData || {};
+              return {
+                  ...prev,
+                  [todayStr]: {
+                      ...prevDay,
+                      bioData: {
+                          ...prevBio,
+                          weight: plan.biometrics.weight,
+                          height: plan.biometrics.height,
+                          bmi: plan.biometrics.bmi,
+                          bmr: plan.biometrics.bmr
+                      }
+                  }
+              };
+          });
+      }
     } else {
       setUserProfile(prev => ({ ...prev, hasCompletedOnboarding: true }));
     }

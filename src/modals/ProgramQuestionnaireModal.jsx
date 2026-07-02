@@ -126,8 +126,12 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
     // Hitung BMR & TDEE
     const age = answers.dob ? (new Date().getFullYear() - new Date(answers.dob).getFullYear()) : 25;
     let bmr = 10 * finalWeight + 6.25 * finalHeight - 5 * age;
-    bmr = answers.gender === 'female' ? bmr - 161 : bmr + 5;
+    bmr = Math.round(answers.gender === 'female' ? bmr - 161 : bmr + 5);
     
+    // Hitung BMI
+    const hMeter = finalHeight / 100;
+    const bmi = Number((finalWeight / (hMeter * hMeter)).toFixed(1));
+
     const activityMultipliers = {
       sedentary: 1.2,
       light: 1.375,
@@ -149,7 +153,9 @@ const ProgramQuestionnaireModal = ({ isOpen, onClose, onComplete, t, lang, sound
             height: finalHeight,
             weight: finalWeight,
             targetWeight: finalTargetWeight,
-            activityLevel: answers.activityLevel
+            activityLevel: answers.activityLevel,
+            bmi: bmi,
+            bmr: bmr
         },
         calculatedTargets: {
             activityCalories: tdee,
