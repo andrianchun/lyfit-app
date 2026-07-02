@@ -302,10 +302,15 @@ export default function ShareCardGenerator({ user, setUser, t, theme, history, a
     const mergedWeeklyWorkoutDuration = weeklyDur; // simplified
     // Calculate calories safely to avoid NaN
     let workoutCal = 0;
+    let dailyIntDur = 0;
     if (todayActivity.workouts?.length) {
-       workoutCal = todayActivity.workouts.reduce((sum, w) => sum + ((Number(w.duration) || 0) * 5), 0);
+       todayActivity.workouts.forEach(w => {
+           workoutCal += ((Number(w.duration) || 0) * 5);
+           if (typeof w.duration === 'number') dailyIntDur += w.duration;
+       });
     }
     const mergedDailyCalories = (Number(bioData.activityCalories) || 0) + workoutCal;
+    const mergedDailyActiveMinutes = Math.max(Number(bioData.activeMinutes || 0), dailyIntDur);
 
     const scoreStyle = bioData.bodyScore >= 80 ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10' : bioData.bodyScore >= 60 ? 'border-amber-400/50 text-amber-400 bg-amber-400/10' : 'border-rose-500/50 text-rose-500 bg-rose-500/10';
 
